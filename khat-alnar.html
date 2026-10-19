@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="khat-version" content="1.1.2">
+<meta name="khat-version" content="1.1.3">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>خط النار</title>
@@ -475,7 +475,8 @@ function canPlaceP(t,tx,ty){if(!canPlaceRaw(t,tx,ty))return false;const d=BD[t];
  for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++)if(!fogExp[(ty+y)*MW+tx+x])return false;
  if(d.coast&&!coastDock(t,tx,ty))return false;if(d.oilOnly)return true;
  if(d.anywhere){for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++)if(!fogVis[(ty+y)*MW+tx+x])return false;return true}
- if(MODE==='base'){for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++)if(!inTerr((ty+y)*MW+tx+x))return false;return true}
+ if(MODE==='base'){let inside=true;for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++)if(!inTerr((ty+y)*MW+tx+x))inside=false;if(inside)return true;
+  if(d.wallish||!nearCtl((tx+d.w/2)*T,(ty+d.h/2)*T))return false;for(let y=0;y<d.h;y++)for(let x=0;x<d.w;x++)if(!fogVis[(ty+y)*MW+tx+x])return false;return true}
  const cx=(tx+d.w/2)*T,cy=(ty+d.h/2)*T;return ents.some(e=>e.kind==='bld'&&e.team===0&&!e.dead&&hyp(e.x-cx,e.y-cy)<20*T)}
 function mkBld(type,team,tx,ty,built,post){const d=BD[type];
  const b={id:nextId++,kind:'bld',type,team,def:d,tx,ty,w:d.w,h:d.h,x:(tx+d.w/2)*T,y:(ty+d.h/2)*T,maxHp:d.hp,hp:built?d.hp:d.hp*.1,built:!!built,prog:built?1:0,
@@ -739,7 +740,7 @@ function aiPick(b){const mins=frame/3600;
 function updAI(){
  for(let i=0;i<ai.alertCd.length;i++)if(ai.alertCd[i]>0)ai.alertCd[i]--;
  if(frame%60===0){let r=0,hq=false;for(const b of ents)if(b.kind==='bld'&&b.team===1&&!b.dead){if(b.type==='refinery')r++;if(b.type==='hq')hq=true}let dr=0;for(const b of ents)if(b.kind==='bld'&&b.team===1&&b.type==='derrick'&&!b.dead)dr++;money[1]+=r*D.inc+(hq?D.inc*.5:0)+dr*D.inc*.35}
- if(MODE==='base'&&ai.nextExpand&&frame>=ai.nextExpand)aiExpand();
+ if(MODE==='base'&&ai.nextExpand&&frame>=ai.nextExpand){if(provLib())ai.nextExpand=frame+3600;else aiExpand()}
  if(frame%300===0){pcomp={inf:0,armor:0,air:0};for(const u of ents)if(u.kind==='unit'&&u.team===0&&!u.dead&&u.def.wp){if(u.def.air)pcomp.air++;else if(u.def.armor==='inf')pcomp.inf++;else pcomp.armor++}}
  if(frame%45===0){let n=0;for(const u of ents)if(u.kind==='unit'&&u.team===1&&!u.dead)n++;
   if(n<D.cap)for(const b of ents){if(b.kind!=='bld'||b.team!==1||b.dead||b.queue.length)continue;if(!['barracks','factory','workshop'].includes(b.type))continue;const t=aiPick(b);if(t&&money[1]>=UD[t].cost){money[1]-=UD[t].cost;b.queue.push(t);n++;if(n>=D.cap)break}}}
@@ -749,7 +750,7 @@ function edgeRaid(){const n=Math.min(4+Math.floor(ai.waveN*1.5),24),types=['rifl
  ai.waveN++;ai.nextWave=frame+D.wave*60;if(out.length){msg('📡 قوة معادية تدخل من الغرب ('+out.length+' وحدة)','#ff8a5b');sfx('alert')}}
 function launchWave(){
  const pool=ents.filter(u=>u.kind==='unit'&&u.team===1&&!u.dead&&u.def.wp&&!u.wave&&!u.def.nav&&u.order.type==='idle');
- if(MODE==='base'&&posts.every(p=>p.dead)){edgeRaid();return}
+ if(provLib()){ai.nextWave=frame+1800;return}
  if(pool.length<3){ai.nextWave=frame+1200;return}
  const size=Math.min(D.w0+2*ai.waveN,32);const keep={};const pbx=PB[0]*T,pby=PB[1]*T;
  pool.sort((a,b)=>hyp(a.x-pbx,a.y-pby)-hyp(b.x-pbx,b.y-pby));
@@ -972,7 +973,7 @@ function paintTile(tx,ty){if(tx<0||ty<0||tx>=MW||ty>=MH||!fogExp[ty*MW+tx])retur
  if(tool==='road'&&terr[k]===1&&origW[k]&&!occ[k]){if(money[0]<150){if(frame-paintWarn>120){paintWarn=frame;msg('بناء الجسر يكلف $150 لكل خانة','#e0584c')}return}money[0]-=150;terr[k]=0;roadM[k]=1;proad[k]=1;drawRoadTile(tx,ty);addBridgeTile(k);if(frame-paintWarn>120){paintWarn=frame;msg('🌉 جسر قيد البناء ($150 لكل خانة) — السفن تمر من تحته','#7fe0ff')}return}
  if(tool==='road'){if(terr[k]!==0||occ[k]||roadM[k])return;if(money[0]<5){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}money[0]-=5;roadM[k]=1;proad[k]=1;drawRoadTile(tx,ty)}
  else if(tool==='pipe'){if((terr[k]!==0&&!(terr[k]===1&&origW[k]))||occ[k]||pipeAt[k])return;const pc=terr[k]===1?25:10;if(money[0]<pc){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}if(pc===25){money[0]-=15;if(frame-paintWarn>120){paintWarn=frame;msg('🛢 أنبوب على دعامات فوق الماء ($25 لكل خانة)','#7fe0ff')}}if(money[0]<10){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}money[0]-=10;mkPipe(tx,ty)}
- else if(tool==='wall'||tool==='gate'){const d=BD[tool];if(terr[k]!==0||occ[k]||pipeAt[k]||gateAt[k]||oilT[k])return;if(!inTerr(k)){if(frame-paintWarn>120){paintWarn=frame;msg('الأسوار تُبنى داخل حدود قاعدتك فقط','#f1c84b')}return}
+ else if(tool==='wall'||tool==='gate'){const d=BD[tool];if(terr[k]!==0||occ[k]||pipeAt[k]||gateAt[k]||oilT[k])return;if(!inTerr(k)&&!nearCtl((tx+.5)*T,(ty+.5)*T)){if(frame-paintWarn>120){paintWarn=frame;msg('الأسوار تُبنى داخل قاعدتك أو قرب آبارك ونقاط إمدادك','#f1c84b')}return}
   if(money[0]<d.cost){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}money[0]-=d.cost;mkBld(tool,0,tx,ty,true);if(tool==='gate')lastPaintT=null}
  else if(tool==='erase'){const o=occ[k],g=gateAt[k];if((o&&o.def.wallish&&o.team===0)||g){const b=g||o;b.dead=true;if(g)gateAt[k]=null;else occ[k]=null;money[0]+=Math.floor(b.def.cost/2)}else if(pipeAt[k]){const p=pipeAt[k];p.dead=true;pipeAt[k]=null;netDirty=true;money[0]+=5}else if(proad[k]){proad[k]=0;roadM[k]=0;if(origW[k]){terr[k]=0;terr[k]=1;for(const b of bridges){const i=b.tiles.indexOf(k);if(i>=0)b.tiles.splice(i,1)}bridges=bridges.filter(b=>b.tiles.length)}roadErased=true}}}
 function paintTo(wx,wy){const tx=Math.floor(wx/T),ty=Math.floor(wy/T);if(tool==='gate'){if(!lastPaintT||lastPaintT[0]!==tx||lastPaintT[1]!==ty)paintTile(tx,ty);lastPaintT=[tx,ty];return}let [x0,y0]=lastPaintT||[tx,ty];const dx=Math.abs(tx-x0),dy=Math.abs(ty-y0),sx=x0<tx?1:-1,sy=y0<ty?1:-1;let err=dx-dy;
@@ -1124,7 +1125,7 @@ let fleet={n:0,lvl:0,away:[]};const FLEETCAP=[6000,10000,15000],FLEETUP=[10000,1
 function econMinute(){if(MODE!=='base')return;let upk=0;for(const u of ents)if(u.kind==='unit'&&u.team===0&&!u.dead&&!u.def.ship)upk+=upkOf(u);
  const delta=stats.earned-lastEarned;lastEarned=stats.earned;provInc=Math.round(provInc*.7+delta*.3);
  let others=0;if(CAMP&&PROV&&PROV!=='old')for(const k in CAMP.prov){if(k===PROV||!PROV_DEF[k]||PROV_DEF[k].hidden)continue;const r=CAMP.prov[k];others+=Math.round((r.inc||0)*.5)-(r.upk||0)}
- if(CAMP&&PROV&&PROV!=='old')for(const k in CAMP.prov){const r=CAMP.prov[k];if(k===PROV||!r.lib||!PROV_DEF[k])continue;if((r.upk||0)<60&&Math.random()<.12){const loss=Math.round((r.inc||0)*.6+400);others-=loss;msg('🕵 خلية نائمة هاجمت أنابيب النفط في '+PROV_AR[k]+' (−$'+loss+') — حامية المحافظة ضعيفة','#ff8a5b')}}
+ if(CAMP&&PROV&&PROV!=='old')for(const k in CAMP.prov){const r=CAMP.prov[k];if(k===PROV||!r.lib||!PROV_DEF[k])continue;if(false&&(r.upk||0)<60&&Math.random()<.12){const loss=Math.round((r.inc||0)*.6+400);others-=loss;msg('🕵 خلية نائمة هاجمت أنابيب النفط في '+PROV_AR[k]+' (−$'+loss+') — حامية المحافظة ضعيفة','#ff8a5b')}}
  econInfo={others,upk};money[0]+=others-upk;if(money[0]<0){money[0]=0;morale=Math.max(0,morale-5);msg('⚠ الخزينة لا تكفي لرواتب الجيش — المعنويات تنخفض','#ff6b5b')}
  if(CAMP&&PROV&&PROV!=='old'&&CAMP.prov[PROV]){CAMP.prov[PROV].inc=provInc;CAMP.prov[PROV].upk=upk}
  const libC=CAMP?Object.values(CAMP.prov).filter(x=>x.lib).length:0;manpower=Math.min(500,manpower+4+3*libC)}
@@ -1315,7 +1316,8 @@ function envHUD(){if(!nightOn)return storm.on?'<div style="color:#ffb35b">🌪 �
 
 // ================= فترة الهدوء في بداية كل محافظة =================
 const PEACE_MIN=30;
-function gangActive(){return MODE!=='base'||!ai||ai.provoked||ai.peaceUntil==null||frame>=ai.peaceUntil}
+function provLib(){return MODE==='base'&&posts.length&&posts.every(p=>p.dead)}
+function gangActive(){if(provLib())return false;return MODE!=='base'||!ai||ai.provoked||ai.peaceUntil==null||frame>=ai.peaceUntil}
 function provoke(why){if(MODE!=='base'||!ai||ai.provoked||ai.peaceUntil==null)return;const early=frame<ai.peaceUntil;ai.provoked=true;
  if(early){ai.nextWave=Math.max(ai.nextWave,frame+150*60);ai.nextPirate=Math.max(ai.nextPirate,frame+240*60);gang.nextAmb=Math.max(gang.nextAmb,frame+300*60);gang.nextIED=Math.max(gang.nextIED,frame+120*60);gang.nextCell=Math.max(gang.nextCell,frame+480*60);gang.nextBridge=Math.max(gang.nextBridge||0,frame+480*60);
   msg('⚠ '+why+' — العصابة علمت بتحركك، وستبدأ هجماتها خلال دقيقتين ونصف','#ff8a5b');sfx('alert');say('انتهى الهدوء، استعدوا',true)}}
@@ -1339,6 +1341,11 @@ function addBridgeTile(k){const x=k%MW,y=(k/MW)|0;const nb=[k-1,k+1,k-MW,k+MW];l
  if(!b){b={tiles:[],x:0,y:0,down:false,rb:0,player:1};bridges.push(b)}b.tiles.push(k);let sx=0,sy=0;for(const t of b.tiles){sx+=t%MW;sy+=(t/MW)|0}b.x=(sx/b.tiles.length+.5)*T;b.y=(sy/b.tiles.length+.5)*T;
  for(const u of ents)if(u.kind==='unit'&&u.path)u.pathT=-999}
 
+
+// ================= البناء خارج القاعدة قرب الآبار =================
+const CTL_R=12;
+function nearCtl(x,y){return ents.some(e=>e.kind==='bld'&&e.team===0&&!e.dead&&(e.type==='derrick'||e.type==='fob'||e.type==='fort')&&hyp(e.x-x,e.y-y)<CTL_R*T)}
+
 // ================= الحلقة الرئيسية =================
 function update(){
  frame++;
@@ -1353,7 +1360,7 @@ function update(){
  if(frame%60===0){updHUD();checkEnd()}
 }
 function checkEnd(){if(over)return;
- if(MODE==='base'){if(!allPostsMsg&&posts.every(p=>p.dead)){allPostsMsg=true;if(PROV){campRecord();campSave();msg('🏆 تحررت محافظة '+PROV_AR[PROV]+'! افتح خريطة الحملة 🗺 لفتح جبهة جديدة','#7fd35a');say('تحررت المحافظة',true);sfx('done')}else msg('🏆 حررت كل المراكز! الغارات من خارج الخريطة ستستمر','#7fd35a')}}
+ if(MODE==='base'){if(!allPostsMsg&&posts.every(p=>p.dead)){allPostsMsg=true;if(PROV){campRecord();campSave();msg('🏆 تحررت محافظة '+PROV_AR[PROV]+'! توقفت هجمات العصابة هنا — افتح خريطة الحملة 🗺 لفتح جبهة جديدة','#7fd35a');say('تحررت المحافظة',true);sfx('done')}else msg('🏆 حررت كل المراكز! الغارات من خارج الخريطة ستستمر','#7fd35a')}}
  else if(!ents.some(e=>e.kind==='bld'&&e.team===1&&!e.dead))return endGame(true);
  const hasB=ents.some(e=>e.team===0&&!e.dead&&(e.kind==='bld'||(e.kind==='unit'&&e.def.build)));const hasA=ents.some(e=>e.team===0&&!e.dead&&e.kind==='unit'&&e.def.wp&&!e.def.nav);
  if(!hasB&&!hasA)endGame(false)}
@@ -1956,7 +1963,7 @@ function render(){
    if(e.repair){ctx.font='14px Tahoma';ctx.fillText('🔧',e.x-7,YT+16)}}}
  for(const e of sel){if(e.dead||!e.def.radar||e.team!==0)continue;ctx.strokeStyle='rgba(111,208,255,.5)';ctx.setLineDash([10,8]);ctx.lineWidth=2;ctx.beginPath();ctx.arc(e.x,e.y,e.def.radar*T,0,TAU);ctx.stroke();ctx.setLineDash([])}
  for(const t of texts){ctx.globalAlpha=Math.min(1,t.life/25);ctx.font='bold 13px Tahoma';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(t.txt,t.x+1,t.y+1);ctx.fillStyle=t.col;ctx.fillText(t.txt,t.x,t.y);ctx.globalAlpha=1}
- if(tool&&mouse.in){const tx=Math.floor(mouse.wx/T),ty=Math.floor(mouse.wy/T),k=ty*MW+tx;let ok=tx>=0&&ty>=0&&tx<MW&&ty<MH&&fogExp[k];if(ok){if(tool==='erase')ok=!!(pipeAt[k]||proad[k]||gateAt[k]||(occ[k]&&occ[k].def.wallish));else if(tool==='wall'||tool==='gate')ok=terr[k]===0&&!occ[k]&&!pipeAt[k]&&!gateAt[k]&&!oilT[k]&&inTerr(k);else ok=(terr[k]===0||(terr[k]===1&&origW[k]))&&!occ[k]&&(tool==='road'?!roadM[k]:!pipeAt[k])}
+ if(tool&&mouse.in){const tx=Math.floor(mouse.wx/T),ty=Math.floor(mouse.wy/T),k=ty*MW+tx;let ok=tx>=0&&ty>=0&&tx<MW&&ty<MH&&fogExp[k];if(ok){if(tool==='erase')ok=!!(pipeAt[k]||proad[k]||gateAt[k]||(occ[k]&&occ[k].def.wallish));else if(tool==='wall'||tool==='gate')ok=terr[k]===0&&!occ[k]&&!pipeAt[k]&&!gateAt[k]&&!oilT[k]&&(inTerr(k)||nearCtl((tx+.5)*T,(ty+.5)*T));else ok=(terr[k]===0||(terr[k]===1&&origW[k]))&&!occ[k]&&(tool==='road'?!roadM[k]:!pipeAt[k])}
   ctx.fillStyle=ok?(tool==='erase'?'rgba(230,90,60,.45)':'rgba(80,220,90,.4)'):'rgba(230,60,50,.25)';ctx.fillRect(tx*T+1,ty*T+1,T-2,T-2);ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(tx*T+.5,ty*T+.5,T-1,T-1)}
  if(placing){const d=BD[placing],tx=Math.floor(mouse.wx/T-d.w/2+.5),ty=Math.floor(mouse.wy/T-d.h/2+.5);const ok=canPlaceP(placing,tx,ty);
   ctx.globalAlpha=.6;drawBld(ctx,fakeB(placing,tx,ty));ctx.globalAlpha=1;
@@ -2295,7 +2302,7 @@ function newCampaign(){if(!confirm('بدء حملة جديدة؟\n\nسيُمسح
 const _svW=saveGame;saveGame=function(s){if(_wiped)return;return _svW(s)};
 const _sgW=startGame;startGame=function(...a){_wiped=false;return _sgW(...a)};
 fillStart();
-const KEYS=[['زر أيسر','تحديد وحدة أو مبنى، أو اسحب لتحديد مجموعة'],['نقر مزدوج','تحديد كل الوحدات من نفس النوع على الشاشة'],['زر أيمن','تحريك / هجوم / توجيه الشاحنة للنفط / نقطة تجمع للمبنى'],['A ثم نقرة','هجوم أثناء التحرك (تقاتل أي عدو في الطريق)'],['S','إيقاف الوحدات'],['Shift + رقم','حفظ مجموعة، والرقم وحده لاستدعائها (مرتين للانتقال إليها)'],['E / Q','كل الجيش / الجيش الظاهر على الشاشة'],['الأسهم أو حافة الشاشة','تحريك الكاميرا، والزر الأوسط للسحب'],['عجلة الماوس','تكبير وتصغير'],['H','العودة للقاعدة'],['مسافة','الانتقال لمكان آخر هجوم'],['P','إيقاف مؤقت'],['Delete','بيع المبنى المحدد'],['النفط والبحر','اختر «شارع» أو «أنبوب» واسحب بالزر الأيسر للرسم، والزر الأيمن للإلغاء'],['🕊 الهدوء','في بداية كل محافظة لا تهاجمك العصابة لمدة 30 دقيقة لتبني قاعدتك — إلا إذا خرجت قواتك من الحدود أو هاجمتهم أولاً'],['🚁 Mi-17','مروحية نقل وإمداد: تحمل 8 جنود (انقر عليها بالزر الأيمن وجنودك محددون)، وD لإنزالهم بالحبال في أي مكان فوق اليابسة، وتزوّد الوحدات بالوقود والذخيرة'],['⛺ نقطة إمداد متقدمة','تبنيها الجرافة في أي مكان مكشوف قرب الجبهة، تزوّد ما حولها وتملأ شاحنات الإمداد'],['🔧 إصلاح ميداني','شاحنة الإمداد تصلح الآليات القريبة ببطء'],['⛽ الإمداد','الآليات تستهلك الوقود والوحدات تستهلك الذخيرة. تتزود قرب المقر والمصنع والثكنة، أو من شاحنة الإمداد التي تذهب وحدها للوحدات المحتاجة'],['🌉 الجسور','العصابة قد تفجّر الجسور غير المحروسة. حدد جرافة وانقر بالزر الأيمن على الجسر المدمر لإعادة بنائه ($1500)'],['🌙 الليل والعواصف','الليل اختياري (زر 🌙 أسفل القائمة) — عند تفعيله تقل الرؤية ليلاً (بحث «رؤية ليلية» يلغي ذلك). العاصفة الرملية تقلل الرؤية والسرعة وتوقف الطيران'],['عصابة العقرب','عجلات مفخخة، انتحاريون، مسيّرات انتحارية، فرق هاون تقصف وتهرب، عبوات ناسفة على الطرق (يكشفها المهندس ويفككها)، أنفاق تخرج منها الكمائن، وخلايا نائمة في المناطق ضعيفة الحماية'],['الجيش العراقي','همفي، مدرعة MRAP، T-72، أبرامز، BM-21، شيلكا، Mi-28، F-16 — بنماذج ثلاثية الأبعاد'],['👥 المجندون','كل وحدة تحتاج طاقماً من المجندين. يزدادون كل دقيقة ومع كل محافظة محررة، والجرحى يعودون بعد دقيقتين (أكثر إن كان الإسعاف قريباً)'],['💪 المعنويات','ترتفع بالانتصارات وتنخفض بالخسائر وتأخر الرواتب، وتؤثر على قوة النيران'],['⭐ القائد','نقاط من تدمير العدو تُصرف على: استطلاع، قصف مدفعي، ضربة جوية، إنزال مظلي'],['🚢 الأسطول','اشترِ ناقلات من بطاقة الميناء ووسّع حمولتها — الناقلة المستأجرة تأخذ 15% أجرة'],['التحصين','حدد جنوداً وانقر بالزر الأيمن على بيت مهدّم أو حصن حدودي ليتحصنوا ويطلقوا النار منه، أو على ناقلة جنود ليصعدوا. الحرف D لإخراجهم'],['المهندس','يستولي على مباني العدو وأبراج نفطه بالزر الأيمن'],['المقاتلة','تنطلق من المطار، تنفذ غارات ثم تعود للتزوّد بالذخيرة'],['الوضعيات','هجومي يلاحق العدو، دفاعي يلاحق قليلاً ثم يعود، ثابت لا يتحرك'],['مركز الأبحاث','تطويرات للدروع والذخيرة والإنتاج والحفر'],['🗣','تشغيل وإيقاف الردود الصوتية'],['الإسعاف','الإسعاف العسكري (من الثكنة) يعالج الجنود القريبين ويتجه للجرحى تلقائياً'],['الصيانة','الآليات قرب المصنع الحربي، والمروحيات قرب المهبط، والزوارق قرب الحوض البحري تُصلح تلقائياً'],['الحدود','الخط الأزرق حول قاعدتك. وسّعها وحصّنها من مركز القيادة، أو ابنِ «حصن حدودي» على الحافة ليمدها. الأسوار والبوابات تُرسم داخلها، والبوابة تفتح لقواتك وتغلق أمام العدو'],['💾','حفظ القاعدة يدوياً (وتُحفظ تلقائياً كل دقيقة وعند الإغلاق)'],['Shift + نقرة','بناء عدة مبانٍ، أو إنتاج 5 وحدات دفعة واحدة']];
+const KEYS=[['زر أيسر','تحديد وحدة أو مبنى، أو اسحب لتحديد مجموعة'],['نقر مزدوج','تحديد كل الوحدات من نفس النوع على الشاشة'],['زر أيمن','تحريك / هجوم / توجيه الشاحنة للنفط / نقطة تجمع للمبنى'],['A ثم نقرة','هجوم أثناء التحرك (تقاتل أي عدو في الطريق)'],['S','إيقاف الوحدات'],['Shift + رقم','حفظ مجموعة، والرقم وحده لاستدعائها (مرتين للانتقال إليها)'],['E / Q','كل الجيش / الجيش الظاهر على الشاشة'],['الأسهم أو حافة الشاشة','تحريك الكاميرا، والزر الأوسط للسحب'],['عجلة الماوس','تكبير وتصغير'],['H','العودة للقاعدة'],['مسافة','الانتقال لمكان آخر هجوم'],['P','إيقاف مؤقت'],['Delete','بيع المبنى المحدد'],['النفط والبحر','اختر «شارع» أو «أنبوب» واسحب بالزر الأيسر للرسم، والزر الأيمن للإلغاء'],['🛢 السيطرة على الآبار','ابنِ برج نفط على أي بئر، ثم تستطيع بناء الأبراج الدفاعية والمباني والأسوار ضمن 12 خانة حوله (وحول نقاط الإمداد والحصون)'],['🏆 التحرير','حين تحرر المحافظة بالكامل تتوقف هجمات العصابة فيها'],['🕊 الهدوء','في بداية كل محافظة لا تهاجمك العصابة لمدة 30 دقيقة لتبني قاعدتك — إلا إذا خرجت قواتك من الحدود أو هاجمتهم أولاً'],['🚁 Mi-17','مروحية نقل وإمداد: تحمل 8 جنود (انقر عليها بالزر الأيمن وجنودك محددون)، وD لإنزالهم بالحبال في أي مكان فوق اليابسة، وتزوّد الوحدات بالوقود والذخيرة'],['⛺ نقطة إمداد متقدمة','تبنيها الجرافة في أي مكان مكشوف قرب الجبهة، تزوّد ما حولها وتملأ شاحنات الإمداد'],['🔧 إصلاح ميداني','شاحنة الإمداد تصلح الآليات القريبة ببطء'],['⛽ الإمداد','الآليات تستهلك الوقود والوحدات تستهلك الذخيرة. تتزود قرب المقر والمصنع والثكنة، أو من شاحنة الإمداد التي تذهب وحدها للوحدات المحتاجة'],['🌉 الجسور','العصابة قد تفجّر الجسور غير المحروسة. حدد جرافة وانقر بالزر الأيمن على الجسر المدمر لإعادة بنائه ($1500)'],['🌙 الليل والعواصف','الليل اختياري (زر 🌙 أسفل القائمة) — عند تفعيله تقل الرؤية ليلاً (بحث «رؤية ليلية» يلغي ذلك). العاصفة الرملية تقلل الرؤية والسرعة وتوقف الطيران'],['عصابة العقرب','عجلات مفخخة، انتحاريون، مسيّرات انتحارية، فرق هاون تقصف وتهرب، عبوات ناسفة على الطرق (يكشفها المهندس ويفككها)، أنفاق تخرج منها الكمائن، وخلايا نائمة في المناطق ضعيفة الحماية'],['الجيش العراقي','همفي، مدرعة MRAP، T-72، أبرامز، BM-21، شيلكا، Mi-28، F-16 — بنماذج ثلاثية الأبعاد'],['👥 المجندون','كل وحدة تحتاج طاقماً من المجندين. يزدادون كل دقيقة ومع كل محافظة محررة، والجرحى يعودون بعد دقيقتين (أكثر إن كان الإسعاف قريباً)'],['💪 المعنويات','ترتفع بالانتصارات وتنخفض بالخسائر وتأخر الرواتب، وتؤثر على قوة النيران'],['⭐ القائد','نقاط من تدمير العدو تُصرف على: استطلاع، قصف مدفعي، ضربة جوية، إنزال مظلي'],['🚢 الأسطول','اشترِ ناقلات من بطاقة الميناء ووسّع حمولتها — الناقلة المستأجرة تأخذ 15% أجرة'],['التحصين','حدد جنوداً وانقر بالزر الأيمن على بيت مهدّم أو حصن حدودي ليتحصنوا ويطلقوا النار منه، أو على ناقلة جنود ليصعدوا. الحرف D لإخراجهم'],['المهندس','يستولي على مباني العدو وأبراج نفطه بالزر الأيمن'],['المقاتلة','تنطلق من المطار، تنفذ غارات ثم تعود للتزوّد بالذخيرة'],['الوضعيات','هجومي يلاحق العدو، دفاعي يلاحق قليلاً ثم يعود، ثابت لا يتحرك'],['مركز الأبحاث','تطويرات للدروع والذخيرة والإنتاج والحفر'],['🗣','تشغيل وإيقاف الردود الصوتية'],['الإسعاف','الإسعاف العسكري (من الثكنة) يعالج الجنود القريبين ويتجه للجرحى تلقائياً'],['الصيانة','الآليات قرب المصنع الحربي، والمروحيات قرب المهبط، والزوارق قرب الحوض البحري تُصلح تلقائياً'],['الحدود','الخط الأزرق حول قاعدتك. وسّعها وحصّنها من مركز القيادة، أو ابنِ «حصن حدودي» على الحافة ليمدها. الأسوار والبوابات تُرسم داخلها، والبوابة تفتح لقواتك وتغلق أمام العدو'],['💾','حفظ القاعدة يدوياً (وتُحفظ تلقائياً كل دقيقة وعند الإغلاق)'],['Shift + نقرة','بناء عدة مبانٍ، أو إنتاج 5 وحدات دفعة واحدة']];
 const kh=KEYS.map(k=>`<b>${k[0]}</b><span>${k[1]}</span>`).join('')+`<b>نصائح</b><span>الدبابات قوية ضد المركبات، وجنود الصواريخ ضد الدروع والطيران، والمشاة ضد المشاة. الراجمة تقصف الأبراج من بعيد. اقتل محطات كهرباء العدو لتضعف أبراجه. الوحدات تترقى بالقتل.</span>`;
 $('keysA').innerHTML=kh;$('keysB').innerHTML=kh;
 

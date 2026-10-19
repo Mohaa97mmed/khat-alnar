@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="khat-version" content="1.1.1">
+<meta name="khat-version" content="1.1.2">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>خط النار</title>
@@ -246,7 +246,7 @@ MAPS.basra_real={roadScale:.5,mw:240,mh:180,pb:[147,145],coast:()=>1e9,lakes:0,r
   {name:'موقع الرميلة',c:[40,92],oil:[32,76],lay:['factory','barracks','power','refinery'],tur:['turret','ctower','aaturret','turret'],units:['tank','tank','rpg','rifle','rifle']},
   {name:'موقع الفاو',c:[189,148],oil:[196,140],lay:['barracks','power','refinery'],tur:['turret','turret','ctower'],units:['rifle','rpg','rpg','rifle'],pirate:1}],
  noil:BASRA_D.noil,roads:[],
- roadPolys:BASRA_D.roads.concat([[[40,92],[68,88],[100,88]],[[68,84],[68,104],[68,126]],[[145,93],[160,112],[176,130],[189,148]],[[189,148],[200,158]]]),
+ roadPolys:BASRA_D.roads.concat([[[138,139],[138.5,145],[139.5,151],[140,156]],[[40,92],[68,88],[100,88]],[[68,84],[68,104],[68,126]],[[145,93],[160,112],[176,130],[189,148]],[[189,148],[200,158]]]),
  bridgePolys:[[[98,42],[106,38],[114,32],[120,28]],[[147,145],[138,139],[128,134]]].concat(BASRA_D.bridges),
  renderPre(c,r){const D_=this.data,at=(s,x,y)=>s.charCodeAt(y*MW+x);
   if(BASRA_OV.complete&&BASRA_OV.naturalWidth)c.drawImage(BASRA_OV,0,0,WW,WH);
@@ -967,13 +967,14 @@ function updTruck(u){const s=u.hs||(u.hs={st:'seek'});
  else if(s.st==='unload'){if(!s.r||s.r.dead){s.st='return';return}if(--s.t<=0){const room=Math.max(0,storeCap()-oilStore),t=Math.min(room,u.cargo);oilStore+=t;u.cargo-=t;
   if(t>0&&onScreen(u.x,u.y,0))floatT(u.x,u.y-18,'+'+Math.round(t)+' برميل','#6fd0ff');if(u.cargo>0){s.t=120;if(frame-paintWarn>1800){paintWarn=frame;msg('⚠ الخزانات ممتلئة — ابنِ خزاناً أو انتظر الناقلة','#f1c84b')}}else s.st='seek'}}}
 // ---------- أدوات الرسم: شوارع وأنابيب ----------
-function drawRoadTile(tx,ty){const c=terrC.getContext('2d'),x=(tx+.5)*T,y=(ty+.5)*T;if(MODE==='base'&&terrM&&terrM[ty*MW+tx]){c.fillStyle='#454644';c.fillRect(tx*T-1,ty*T-1,T+2,T+2);c.fillStyle='rgba(255,255,255,.07)';for(let i=0;i<10;i++)c.fillRect(tx*T+Math.random()*T,ty*T+Math.random()*T,1.5,1.5);miniC.getContext('2d').fillStyle='#454644';miniC.getContext('2d').fillRect(tx*2,ty*2,2,2);return}circ(c,x,y,19,'#a88f68');circ(c,x,y,15,'#b09670');c.fillStyle='rgba(90,70,45,.25)';for(let i=0;i<6;i++)c.fillRect(x-14+Math.random()*28,y-14+Math.random()*28,2,2);miniC.getContext('2d').fillStyle='#a88f68';miniC.getContext('2d').fillRect(tx*2,ty*2,2,2)}
+function drawRoadTile(tx,ty){const c=terrC.getContext('2d'),x=(tx+.5)*T,y=(ty+.5)*T;if(origW[ty*MW+tx]){drawBridgeTile(c,tx,ty);return}if(MODE==='base'&&terrM&&terrM[ty*MW+tx]){c.fillStyle='#454644';c.fillRect(tx*T-1,ty*T-1,T+2,T+2);c.fillStyle='rgba(255,255,255,.07)';for(let i=0;i<10;i++)c.fillRect(tx*T+Math.random()*T,ty*T+Math.random()*T,1.5,1.5);miniC.getContext('2d').fillStyle='#454644';miniC.getContext('2d').fillRect(tx*2,ty*2,2,2);return}circ(c,x,y,19,'#a88f68');circ(c,x,y,15,'#b09670');c.fillStyle='rgba(90,70,45,.25)';for(let i=0;i<6;i++)c.fillRect(x-14+Math.random()*28,y-14+Math.random()*28,2,2);miniC.getContext('2d').fillStyle='#a88f68';miniC.getContext('2d').fillRect(tx*2,ty*2,2,2)}
 function paintTile(tx,ty){if(tx<0||ty<0||tx>=MW||ty>=MH||!fogExp[ty*MW+tx])return;const k=ty*MW+tx;
+ if(tool==='road'&&terr[k]===1&&origW[k]&&!occ[k]){if(money[0]<150){if(frame-paintWarn>120){paintWarn=frame;msg('بناء الجسر يكلف $150 لكل خانة','#e0584c')}return}money[0]-=150;terr[k]=0;roadM[k]=1;proad[k]=1;drawRoadTile(tx,ty);addBridgeTile(k);if(frame-paintWarn>120){paintWarn=frame;msg('🌉 جسر قيد البناء ($150 لكل خانة) — السفن تمر من تحته','#7fe0ff')}return}
  if(tool==='road'){if(terr[k]!==0||occ[k]||roadM[k])return;if(money[0]<5){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}money[0]-=5;roadM[k]=1;proad[k]=1;drawRoadTile(tx,ty)}
- else if(tool==='pipe'){if(terr[k]!==0||occ[k]||pipeAt[k])return;if(money[0]<10){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}money[0]-=10;mkPipe(tx,ty)}
+ else if(tool==='pipe'){if((terr[k]!==0&&!(terr[k]===1&&origW[k]))||occ[k]||pipeAt[k])return;const pc=terr[k]===1?25:10;if(money[0]<pc){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}if(pc===25){money[0]-=15;if(frame-paintWarn>120){paintWarn=frame;msg('🛢 أنبوب على دعامات فوق الماء ($25 لكل خانة)','#7fe0ff')}}if(money[0]<10){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}money[0]-=10;mkPipe(tx,ty)}
  else if(tool==='wall'||tool==='gate'){const d=BD[tool];if(terr[k]!==0||occ[k]||pipeAt[k]||gateAt[k]||oilT[k])return;if(!inTerr(k)){if(frame-paintWarn>120){paintWarn=frame;msg('الأسوار تُبنى داخل حدود قاعدتك فقط','#f1c84b')}return}
   if(money[0]<d.cost){if(frame-paintWarn>120){paintWarn=frame;msg('الأموال غير كافية','#e0584c')}return}money[0]-=d.cost;mkBld(tool,0,tx,ty,true);if(tool==='gate')lastPaintT=null}
- else if(tool==='erase'){const o=occ[k],g=gateAt[k];if((o&&o.def.wallish&&o.team===0)||g){const b=g||o;b.dead=true;if(g)gateAt[k]=null;else occ[k]=null;money[0]+=Math.floor(b.def.cost/2)}else if(pipeAt[k]){const p=pipeAt[k];p.dead=true;pipeAt[k]=null;netDirty=true;money[0]+=5}else if(proad[k]){proad[k]=0;roadM[k]=0;roadErased=true}}}
+ else if(tool==='erase'){const o=occ[k],g=gateAt[k];if((o&&o.def.wallish&&o.team===0)||g){const b=g||o;b.dead=true;if(g)gateAt[k]=null;else occ[k]=null;money[0]+=Math.floor(b.def.cost/2)}else if(pipeAt[k]){const p=pipeAt[k];p.dead=true;pipeAt[k]=null;netDirty=true;money[0]+=5}else if(proad[k]){proad[k]=0;roadM[k]=0;if(origW[k]){terr[k]=0;terr[k]=1;for(const b of bridges){const i=b.tiles.indexOf(k);if(i>=0)b.tiles.splice(i,1)}bridges=bridges.filter(b=>b.tiles.length)}roadErased=true}}}
 function paintTo(wx,wy){const tx=Math.floor(wx/T),ty=Math.floor(wy/T);if(tool==='gate'){if(!lastPaintT||lastPaintT[0]!==tx||lastPaintT[1]!==ty)paintTile(tx,ty);lastPaintT=[tx,ty];return}let [x0,y0]=lastPaintT||[tx,ty];const dx=Math.abs(tx-x0),dy=Math.abs(ty-y0),sx=x0<tx?1:-1,sy=y0<ty?1:-1;let err=dx-dy;
  for(let i=0;i<300;i++){paintTile(x0,y0);if(x0===tx&&y0===ty)break;const e2=2*err;if(e2>-dy){err-=dy;x0+=sx}else if(e2<dx){err+=dx;y0+=sy}}lastPaintT=[tx,ty]}
 function redrawTerrain(){renderTerrain();for(let k=0;k<NN;k++)if(proad[k])drawRoadTile(k%MW,(k/MW)|0);paveRoads()}
@@ -1010,7 +1011,7 @@ function restore(S){
   const o=e.o||{type:'idle'};if(o.type==='build'){const b=occ[o.ty*MW+o.tx];u.order=b&&!b.built?{type:'build',b}:{type:'idle'}}else u.order=o;if(o.type==='move'||o.type==='amove')setPath(u,o.x,o.y)}
  for(const [u,ins] of INS){const c=ins.b?occ[ins.b[1]*MW+ins.b[0]]:UM[ins.u];if(c&&!c.dead&&capOf(c)>0){if(!c.gar)c.gar=[];c.gar.push(u);u.inside=c;u.path=null;u.order={type:'idle'}}}
  for(let i=0,c=0;i<NN;i+=6,c++){const v=S.fog.charCodeAt(c)-48;for(let j=0;j<6;j++)if(v&(1<<j))fogExp[i+j]=1}
- for(const k of S.proad){proad[k]=1;roadM[k]=1}
+ for(const k of S.proad){proad[k]=1;roadM[k]=1;if(origW[k])terr[k]=0}
  nextId=Math.max(nextId,S.nextId||0);
  ai.nextWave=frame+S.ai.nw;RES=Object.assign({armor:0,dmg:0,prod:0,drill:0,nv:0},S.res||{});contractsDone=S.cdn||0;contract=S.ct?{need:S.ct.need,start:S.ct.start,end:frame+S.ct.end,reward:S.ct.reward}:null;nextContract=frame+(S.nct!=null?S.nct:10800);ai.nextExpand=frame+(S.nex!=null?S.nex:21600);ai.waveN=S.ai.wn;ai.nextShip=frame+S.ai.ns;ai.nextPirate=frame+S.ai.np;netDirty=true}
 function exportSave(){if(MODE==='base'&&running)saveGame(true);const s=localStorage.getItem(SAVE_KEY);if(!s){msg('لا توجد قاعدة محفوظة بعد');return}
@@ -1275,7 +1276,7 @@ function logiIcons(c,u){if(u.team!==0||MODE!=='base')return;if(needsFuel(u)&&u.f
 // ================= الجسور: تُفجَّر وتُعاد =================
 let bridges=[];
 function findBridges(){bridges=[];const seen=new Uint8Array(NN);for(let i=0;i<NN;i++){if(seen[i]||!(roadM[i]&&origW[i]))continue;const q=[i],tiles=[];seen[i]=1;while(q.length){const k=q.pop();tiles.push(k);const x=k%MW,y=(k/MW)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=MW||Y>=MH)continue;const kk=Y*MW+X;if(!seen[kk]&&roadM[kk]&&origW[kk]){seen[kk]=1;q.push(kk)}}}
-  if(tiles.length<3)continue;let sx=0,sy=0;for(const k of tiles){sx+=k%MW;sy+=(k/MW)|0}bridges.push({tiles,x:(sx/tiles.length+.5)*T,y:(sy/tiles.length+.5)*T,down:false,rb:0})}}
+  if(tiles.length<3&&!tiles.some(t=>proad[t]))continue;let sx=0,sy=0;for(const k of tiles){sx+=k%MW;sy+=(k/MW)|0}bridges.push({tiles,x:(sx/tiles.length+.5)*T,y:(sy/tiles.length+.5)*T,down:false,rb:0})}}
 function blowBridge(b,by){if(b.down)return;b.down=true;for(const k of b.tiles){terr[k]=1;roadM[k]=0}for(let i=0;i<5;i++)boom(b.x+rnd(-40,40),b.y+rnd(-30,30),1.6);if(onScreen(b.x,b.y,200))shake=Math.max(shake,10);
  for(const u of ents)if(u.kind==='unit'&&!u.dead&&!u.def.air&&!u.def.nav&&b.tiles.includes(tIdx(u.x,u.y)))hurt(u,9999,'bomb',null);for(const u of ents)if(u.kind==='unit'&&u.path)u.pathT=-999;
  msg('💥 '+(by||'العصابة')+' فجّرت الجسر! حدد جرافة وانقر على الجسر المدمّر بالزر الأيمن لإعادة بنائه','#ff6b5b');sfx('alert');lastAlert=frame;alertPos={x:b.x,y:b.y}}
@@ -1324,6 +1325,19 @@ function peaceTick(){if(MODE!=='base'||!ai||ai.peaceUntil==null)return;
  for(const u of ents){if(u.kind!=='unit'||u.team!==0||u.dead||u.inside||u.def.ship||u.def.harv||u.def.build)continue;if(!(u.def.wp||u.def.carry||u.def.supplier||u.def.eng))continue;
   const tx=Math.floor(u.x/T),ty=Math.floor(u.y/T);if(tx<0||ty<0||tx>=MW||ty>=MH)continue;if(!inTerr(ty*MW+tx)){provoke('قواتك خرجت من حدود القاعدة');return}}}
 function peaceHUD(){if(MODE!=='base'||!ai||ai.peaceUntil==null||ai.provoked)return '';return `<div style="color:#9fd36a">🕊 هدوء: الهجمات تبدأ بعد ${fmtT(Math.max(0,ai.peaceUntil-frame)/60)} أو عند خروج قواتك</div>`}
+
+
+// ================= الجسور التي يبنيها اللاعب =================
+function drawBridgeTile(c,tx,ty){const X=tx*T,Y=ty*T,k=ty*MW+tx,h=(dx,dy)=>{const kk=(ty+dy)*MW+tx+dx;return tx+dx>=0&&ty+dy>=0&&tx+dx<MW&&ty+dy<MH&&roadM[kk]&&origW[kk]};
+ const horiz=h(1,0)||h(-1,0),vert=h(0,1)||h(0,-1);c.fillStyle='rgba(20,40,55,.35)';c.fillRect(X+3,Y+5,T,T);
+ c.fillStyle='#4a4b48';c.fillRect(X-1,Y-1,T+2,T+2);c.fillStyle='#5a5b57';c.fillRect(X+1,Y+1,T-2,T-2);c.fillStyle='#c9c4b6';
+ if(horiz||!vert){c.fillRect(X-1,Y,T+2,3);c.fillRect(X-1,Y+T-3,T+2,3);c.fillStyle='#e9c64a';c.fillRect(X+4,Y+T/2-1,T-8,2)}
+ else{c.fillRect(X,Y-1,3,T+2);c.fillRect(X+T-3,Y-1,3,T+2);c.fillStyle='#e9c64a';c.fillRect(X+T/2-1,Y+4,2,T-8)}
+ if((tx+ty)%3===0){c.fillStyle='#3a3b38';c.fillRect(X+T/2-3,Y+T-2,6,4)}
+ if(miniC){const m=miniC.getContext('2d');m.fillStyle='#6b6b66';m.fillRect(tx*MMX,ty*MMX,Math.max(1,MMX),Math.max(1,MMX))}}
+function addBridgeTile(k){const x=k%MW,y=(k/MW)|0;const nb=[k-1,k+1,k-MW,k+MW];let b=bridges.find(q=>q.tiles.some(t=>nb.includes(t)));
+ if(!b){b={tiles:[],x:0,y:0,down:false,rb:0,player:1};bridges.push(b)}b.tiles.push(k);let sx=0,sy=0;for(const t of b.tiles){sx+=t%MW;sy+=(t/MW)|0}b.x=(sx/b.tiles.length+.5)*T;b.y=(sy/b.tiles.length+.5)*T;
+ for(const u of ents)if(u.kind==='unit'&&u.path)u.pathT=-999}
 
 // ================= الحلقة الرئيسية =================
 function update(){
@@ -1942,7 +1956,7 @@ function render(){
    if(e.repair){ctx.font='14px Tahoma';ctx.fillText('🔧',e.x-7,YT+16)}}}
  for(const e of sel){if(e.dead||!e.def.radar||e.team!==0)continue;ctx.strokeStyle='rgba(111,208,255,.5)';ctx.setLineDash([10,8]);ctx.lineWidth=2;ctx.beginPath();ctx.arc(e.x,e.y,e.def.radar*T,0,TAU);ctx.stroke();ctx.setLineDash([])}
  for(const t of texts){ctx.globalAlpha=Math.min(1,t.life/25);ctx.font='bold 13px Tahoma';ctx.textAlign='center';ctx.fillStyle='#000';ctx.fillText(t.txt,t.x+1,t.y+1);ctx.fillStyle=t.col;ctx.fillText(t.txt,t.x,t.y);ctx.globalAlpha=1}
- if(tool&&mouse.in){const tx=Math.floor(mouse.wx/T),ty=Math.floor(mouse.wy/T),k=ty*MW+tx;let ok=tx>=0&&ty>=0&&tx<MW&&ty<MH&&fogExp[k];if(ok){if(tool==='erase')ok=!!(pipeAt[k]||proad[k]||gateAt[k]||(occ[k]&&occ[k].def.wallish));else if(tool==='wall'||tool==='gate')ok=terr[k]===0&&!occ[k]&&!pipeAt[k]&&!gateAt[k]&&!oilT[k]&&inTerr(k);else ok=terr[k]===0&&!occ[k]&&(tool==='road'?!roadM[k]:!pipeAt[k])}
+ if(tool&&mouse.in){const tx=Math.floor(mouse.wx/T),ty=Math.floor(mouse.wy/T),k=ty*MW+tx;let ok=tx>=0&&ty>=0&&tx<MW&&ty<MH&&fogExp[k];if(ok){if(tool==='erase')ok=!!(pipeAt[k]||proad[k]||gateAt[k]||(occ[k]&&occ[k].def.wallish));else if(tool==='wall'||tool==='gate')ok=terr[k]===0&&!occ[k]&&!pipeAt[k]&&!gateAt[k]&&!oilT[k]&&inTerr(k);else ok=(terr[k]===0||(terr[k]===1&&origW[k]))&&!occ[k]&&(tool==='road'?!roadM[k]:!pipeAt[k])}
   ctx.fillStyle=ok?(tool==='erase'?'rgba(230,90,60,.45)':'rgba(80,220,90,.4)'):'rgba(230,60,50,.25)';ctx.fillRect(tx*T+1,ty*T+1,T-2,T-2);ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(tx*T+.5,ty*T+.5,T-1,T-1)}
  if(placing){const d=BD[placing],tx=Math.floor(mouse.wx/T-d.w/2+.5),ty=Math.floor(mouse.wy/T-d.h/2+.5);const ok=canPlaceP(placing,tx,ty);
   ctx.globalAlpha=.6;drawBld(ctx,fakeB(placing,tx,ty));ctx.globalAlpha=1;
@@ -2295,7 +2309,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(100,now-lastT);
   if(++uiT%6===0){updUI();drawMini()}}
  render()}
 resize();requestAnimationFrame(loop);
-window.__game={get bridges(){return bridges},blowBridge,get storm(){return storm},dayLight,logiTick,get ieds(){return ieds},tunnelAmbush,sleeperCell,plantIED,get gang(){return gang},detonate,showStory,canPlaceP,get oilStore(){return oilStore},set oilStore(v){oilStore=v},get money(){return money},get terrC(){return terrC},usePower,get cmdPts(){return cmdPts},set cmdPts(v){cmdPts=v},get manpower(){return manpower},set manpower(v){manpower=v},get morale(){return morale},get fleet(){return fleet},get wounded(){return wounded},get corpses(){return corpses},sprOK,queueUnit,kill,get PROV(){return PROV},get CAMP(){return CAMP},openCamp,evac,startRes,get RES(){return RES},get contract(){return contract},aiExpand,captureBld,get expLvl(){return expLvl},set expLvl(v){expLvl=v;terrDirty=true},get fortLvl(){return fortLvl},set fortLvl(v){fortLvl=v;applyWallHp();for(const k in BSP)if(k.startsWith('wall')||k.startsWith('gate'))delete BSP[k]},inTerr,get oils(){return oils},get ai(){return ai},coastDock,mkPipe,get MODE(){return MODE},get oilStore(){return oilStore},set oilStore(v){oilStore=v},saveGame,readSave,serialize,setTool(t){tool=t},paintTo,get tool(){return tool},portrait,centerOn,reveal(){fogVis.fill(1);fogExp.fill(1);fogX.clearRect(0,0,MW,MH)},setZoom(z){zoom=z},mkUnit,startGame,update,render,updUI,drawMini,buildUI,get ents(){return ents},get money(){return money},get posts(){return posts},get frame(){return frame},set frame(v){frame=v},issueMove,queueUnit,mkBld,canPlaceP,get sel(){return sel},set sel(v){sel=v},cmdAmove,get stats(){return stats}};
+window.__game={paintTile,setToolX(t){tool=t},get terrA(){return terr},get origWA(){return origW},get bridges(){return bridges},blowBridge,get storm(){return storm},dayLight,logiTick,get ieds(){return ieds},tunnelAmbush,sleeperCell,plantIED,get gang(){return gang},detonate,showStory,canPlaceP,get oilStore(){return oilStore},set oilStore(v){oilStore=v},get money(){return money},get terrC(){return terrC},usePower,get cmdPts(){return cmdPts},set cmdPts(v){cmdPts=v},get manpower(){return manpower},set manpower(v){manpower=v},get morale(){return morale},get fleet(){return fleet},get wounded(){return wounded},get corpses(){return corpses},sprOK,queueUnit,kill,get PROV(){return PROV},get CAMP(){return CAMP},openCamp,evac,startRes,get RES(){return RES},get contract(){return contract},aiExpand,captureBld,get expLvl(){return expLvl},set expLvl(v){expLvl=v;terrDirty=true},get fortLvl(){return fortLvl},set fortLvl(v){fortLvl=v;applyWallHp();for(const k in BSP)if(k.startsWith('wall')||k.startsWith('gate'))delete BSP[k]},inTerr,get oils(){return oils},get ai(){return ai},coastDock,mkPipe,get MODE(){return MODE},get oilStore(){return oilStore},set oilStore(v){oilStore=v},saveGame,readSave,serialize,setTool(t){tool=t},paintTo,get tool(){return tool},portrait,centerOn,reveal(){fogVis.fill(1);fogExp.fill(1);fogX.clearRect(0,0,MW,MH)},setZoom(z){zoom=z},mkUnit,startGame,update,render,updUI,drawMini,buildUI,get ents(){return ents},get money(){return money},get posts(){return posts},get frame(){return frame},set frame(v){frame=v},issueMove,queueUnit,mkBld,canPlaceP,get sel(){return sel},set sel(v){sel=v},cmdAmove,get stats(){return stats}};
 })();
 </script>
 </body>

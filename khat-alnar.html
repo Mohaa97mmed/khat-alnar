@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="khat-version" content="1.1.4">
+<meta name="khat-version" content="1.1.5">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>خط النار</title>
@@ -9,6 +9,11 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#14130f;color:#ece3cc;font-family:Tahoma,"Segoe UI",Arial,sans-serif;user-select:none;-webkit-user-select:none}
 #cv{position:absolute;left:0;top:0;display:block;cursor:default}
+#ovScene{position:fixed;inset:0;z-index:90;background:#000}#ovScene.hide{display:none}#scBg{position:absolute;inset:0;width:100%;height:100%}
+#scBox{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);width:min(900px,92vw);display:flex;gap:18px;align-items:flex-start;background:rgba(18,16,12,.92);border:2px solid #8a7a3a;border-radius:12px;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+#scPort{width:150px;height:175px;border-radius:8px;border:2px solid #6b5f30;object-fit:cover;flex:none}#scInfo{flex:1;min-width:0}#scName{color:#f0c14b;font-size:20px;font-weight:bold}#scTitle{color:#a59a7a;font-size:13px;margin-bottom:8px}
+#scText{color:#efe7d2;font-size:18px;line-height:1.75;min-height:96px}#scCtl{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}#scBtns{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+#scToast{position:fixed;left:12px;bottom:14px;z-index:40;display:flex;gap:10px;max-width:420px;background:rgba(18,16,12,.93);border:2px solid #6b5f30;border-radius:10px;padding:10px;color:#efe7d2}#scToast.hide{display:none}#scToast img{width:70px;height:82px;border-radius:6px;object-fit:cover}#scToast b{color:#f0c14b;display:block}#scToast span{font-size:11px;color:#a59a7a}#scToast p{margin:4px 0 0;font-size:14px;line-height:1.5}
 #side{position:absolute;right:0;top:0;bottom:0;width:260px;background:#26261d;border-left:3px solid #47452f;padding:8px 9px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
 #res{display:flex;justify-content:space-between;align-items:baseline}
 #money{color:#f0c14b;direction:ltr;font-size:20px;font-weight:bold}
@@ -77,6 +82,7 @@ button:focus-visible{outline:2px solid #f0c14b}
 </head>
 <body>
 <canvas id="cv"></canvas>
+<div id="ovScene" class="hide"><canvas id="scBg"></canvas><div id="scBox"><img id="scPort"><div id="scInfo"><div id="scName"></div><div id="scTitle"></div><div id="scText"></div><div id="scBtns"></div><div id="scCtl"><button id="scNext" class="big">التالي ◀</button><button id="scAuto">▶ تشغيل تلقائي</button><button id="scSkip">تخطي ⏭</button></div></div></div></div><div id="scToast" class="hide"></div>
 <div id="side">
   <div id="res"><span id="money">$0</span><span id="power">⚡ 0/0</span></div>
   <div id="powbar"><div></div></div>
@@ -89,7 +95,7 @@ button:focus-visible{outline:2px solid #f0c14b}
   <div id="igrid" class="grid hide"></div>
   <div id="cgrid" class="grid hide"></div>
   <div id="tabhint"></div>
-  <div id="ctrls"><button id="bPause" title="إيقاف مؤقت (P)">⏸</button><button id="bSpeed" title="سرعة اللعب">×1</button><button id="bSnd" title="الصوت">🔊</button><button id="bVoice" title="ردود الوحدات الصوتية">🗣</button><button id="bNight" title="دورة الليل والنهار (اختيارية)">🌙</button><button id="bSave" title="حفظ القاعدة (تحفظ تلقائياً كل دقيقة)">💾</button><button id="bCamp" title="خريطة الحملة">🗺</button><button id="bHelp" title="التحكم">؟</button></div>
+  <div id="ctrls"><button id="bPause" title="إيقاف مؤقت (P)">⏸</button><button id="bSpeed" title="سرعة اللعب">×1</button><button id="bSnd" title="الصوت">🔊</button><button id="bVoice" title="ردود الوحدات الصوتية">🗣</button><button id="bNight" title="دورة الليل والنهار (اختيارية)">🌙</button><button id="bMusic" title="الموسيقى">🎵</button><button id="bSave" title="حفظ القاعدة (تحفظ تلقائياً كل دقيقة)">💾</button><button id="bCamp" title="خريطة الحملة">🗺</button><button id="bHelp" title="التحكم">؟</button></div>
 </div>
 <div id="hud"></div>
 <div id="msgs"></div>
@@ -599,7 +605,7 @@ function kill(t,src){
  else{for(let y=0;y<t.h;y++)for(let x=0;x<t.w;x++)if(occ[(t.ty+y)*MW+t.tx+x]===t)occ[(t.ty+y)*MW+t.tx+x]=null;if(t.def.gate)gateAt[t.ty*MW+t.tx]=null;if(t.team===0&&(t.type==='hq'||t.type==='fort'))terrDirty=true;if(t.def.wallish){boom(t.x,t.y,.7);if(t.team===0&&frame-lastAlert>600){lastAlert=frame;alertPos={x:t.x,y:t.y};msg('⚠ العدو اخترق السور!','#ff6b5b')}return}
   if(vis){boom(t.x,t.y,2.2);for(let i=0;i<t.w;i++)boom(t.x+rnd(-1,1)*t.w*T/2.5,t.y+rnd(-1,1)*t.h*T/2.5,1)}scorch(t.x,t.y,t.w*T*.7);calcPower();netDirty=true;
   if(t.team===1&&t.post!=null)checkPost(t.post);if(t.team===0)msg('خسرنا مبنى: '+t.def.n,'#ff6b5b')}}
-function checkPost(p){if(posts[p].dead)return;if(!ents.some(e=>e.kind==='bld'&&e.team===1&&!e.dead&&e.post===p)){posts[p].dead=true;msg('🔥 تم تدمير '+posts[p].name,'#7fd35a');sfx('done');updHUD();if(MODE==='base'){setTimeout(()=>{msg('📻 القيادة: تم تطهير «'+posts[p].name+'» — أحسنت أيها القائد! '+(posts.every(q=>q.dead)?'':'بقي '+posts.filter(q=>!q.dead).length+' من مواقع العصابة.'),'#f0c14b');say('تم تطهير الموقع، أحسنت',true)},1500)}}}
+function checkPost(p){if(posts[p].dead)return;if(!ents.some(e=>e.kind==='bld'&&e.team===1&&!e.dead&&e.post===p)){posts[p].dead=true;msg('🔥 تم تدمير '+posts[p].name,'#7fd35a');try{if(!posts.every(q=>q.dead))onPostLiberated(p)}catch(e){};sfx('done');updHUD();if(MODE==='base'){setTimeout(()=>{msg('📻 القيادة: تم تطهير «'+posts[p].name+'» — أحسنت أيها القائد! '+(posts.every(q=>q.dead)?'':'بقي '+posts.filter(q=>!q.dead).length+' من مواقع العصابة.'),'#f0c14b');say('تم تطهير الموقع، أحسنت',true)},1500)}}}
 function boom(x,y,s){
  addP({t:'flash',x,y,life:7,max:7,r:22*s});addP({t:'ring',x,y,life:14,max:14,r:30*s});
  for(let i=0;i<7*s;i++)addP({t:'fire',x:x+rnd(-6,6)*s,y:y+rnd(-6,6)*s,vx:rnd(-1.2,1.2)*s,vy:rnd(-1.2,1.2)*s,life:rnd(18,34),max:34,r:rnd(4,9)*s});
@@ -1327,7 +1333,7 @@ function peaceTick(){if(MODE!=='base'||!ai||ai.peaceUntil==null)return;
  if(ai.provoked||frame%60)return;
  for(const u of ents){if(u.kind!=='unit'||u.team!==0||u.dead||u.inside||u.def.ship||u.def.harv||u.def.build||(u.arriving&&u.arriving>frame))continue;if(!(u.def.wp||u.def.carry||u.def.supplier||u.def.eng))continue;
   const tx=Math.floor(u.x/T),ty=Math.floor(u.y/T);if(tx<0||ty<0||tx>=MW||ty>=MH)continue;if(!inTerr(ty*MW+tx)){provoke('قواتك خرجت من حدود القاعدة');return}}}
-function peaceHUD(){if(MODE!=='base'||!ai||ai.peaceUntil==null||ai.provoked)return '';return `<div style="color:#9fd36a">🕊 هدوء: الهجمات تبدأ بعد ${fmtT(Math.max(0,ai.peaceUntil-frame)/60)} أو عند خروج قواتك</div>`}
+function peaceHUD(){if(typeof provLib==='function'&&provLib())return '';if(MODE!=='base'||!ai||ai.peaceUntil==null||ai.provoked)return '';return `<div style="color:#9fd36a">🕊 هدوء: الهجمات تبدأ بعد ${fmtT(Math.max(0,ai.peaceUntil-frame)/60)} أو عند خروج قواتك</div>`}
 
 
 // ================= الجسور التي يبنيها اللاعب =================
@@ -1383,8 +1389,8 @@ function convKm(a,b){const r=convRoute(a,b);let d=0;for(let i=0;i<r.length-1;i++
 function convRisk(a,b,air){const r=convRoute(a,b);let risk=0;for(const k of r.slice(1)){const st=provState(k);if(st!=='lib')risk+=k===b?.3:.25}if(air)risk*=.4;return Math.min(.6,risk)}
 function convUnitsIn(k){if(!PROV_DEF[k])return[];const S=readSave(PROV_DEF[k].key);if(!S)return[];const carriers=new Set(S.ents.filter(e=>e.k==='u'&&e.ins&&e.ins.u!=null).map(e=>e.ins.u));
  return S.ents.filter(e=>e.k==='u'&&e.tm===0&&!e.ins&&!carriers.has(e.ui)&&UD[e.t]&&!UD[e.t].ship&&!UD[e.t].harv&&!UD[e.t].nav)}
-function convOpen(){campLoad();const srcs=CONV_P.filter(k=>convUnitsIn(k).length);if(!srcs.length){alert('لا توجد قوات متاحة للنقل في أي محافظة بعد.');return}
- let from=srcs.includes(campSel)?campSel:srcs[0],to=CONV_P.find(k=>k!==from&&['lib','front','open'].includes(provState(k)))||'ma';const pick={};
+function convOpen(pre){campLoad();const srcs=CONV_P.filter(k=>convUnitsIn(k).length);if(!srcs.length){alert('لا توجد قوات متاحة للنقل في أي محافظة بعد.');return}
+ let from=srcs.includes(campSel)?campSel:srcs[0],to=CONV_P.find(k=>k!==from&&['lib','front','open'].includes(provState(k)))||'ma';const pick={};if(pre){if(srcs.includes(pre.from))from=pre.from;if(pre.to)to=pre.to;Object.assign(pick,pre.pick||{})}
  const draw=()=>{const avail=convUnitsIn(from);const cnt={};for(const e of avail)cnt[e.t]=(cnt[e.t]||0)+1;
   const opt=(arr,v)=>arr.map(k=>`<option value="${k}" ${k===v?'selected':''}>${PROV_AR[k]}</option>`).join('');
   const dests=CONV_P.filter(k=>k!==from&&['lib','front','open'].includes(provState(k)));if(!dests.includes(to))to=dests[0];
@@ -1437,6 +1443,145 @@ function convSVG(){if(!CAMP||!CAMP.convoys)return'';const now=Date.now();let h='
   for(let i=0;i<segs.length;i++){if(w<=segs[i]){const k=w/segs[i];px=r[i].x+(r[i+1].x-r[i].x)*k;py=r[i].y+(r[i+1].y-r[i].y)*k;break}w-=segs[i];px=r[i+1].x;py=r[i+1].y}
   h+=`<polyline points="${r.map(p=>p.x+','+p.y).join(' ')}" fill="none" stroke="#f0c14b" stroke-width="3" stroke-dasharray="10 7" pointer-events="none"/><text x="${px}" y="${py+8}" font-size="26" text-anchor="middle" pointer-events="none">${c.air?'🚁':'🚛'}</text>`}return h}
 
+// ================= شخصيات القصة (رسوم بورتريه) =================
+const CAST={
+ cmd:{n:'اللواء الركن أبو علي',t:'قائد العمليات',k:'cmd'},intel:{n:'العقيد ماجد',t:'ضابط الاستخبارات',k:'intel'},logi:{n:'المقدم سعد',t:'ضابط الإمداد والنقل',k:'logi'},
+ sheikh:{n:'الشيخ عبد الكريم',t:'شيخ عشيرة',k:'sheikh'},mother:{n:'أم حسين',t:'من أهالي المدينة',k:'mother'},child:{n:'علي',t:'طفل من المدينة',k:'child'},gov:{n:'السيد المحافظ',t:'محافظ المدينة',k:'gov'}};
+const PORTR={};
+function castPortrait(k){if(PORTR[k])return PORTR[k];const W=240,H=280,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+ const BG={cmd:['#4a5236','#22261a'],intel:['#3d4a52','#1c2328'],logi:['#55503a','#26241a'],sheikh:['#8a6a3a','#3a2a16'],mother:['#6a5a6e','#2a2230'],child:['#5a7a9a','#26344a'],gov:['#5a5248','#26221d']}[k];
+ const bg=g.createRadialGradient(W/2,H*.35,10,W/2,H/2,W*.75);bg.addColorStop(0,BG[0]);bg.addColorStop(1,BG[1]);g.fillStyle=bg;g.fillRect(0,0,W,H);
+ g.globalAlpha=.08;for(let i=0;i<40;i++){g.fillStyle='#fff';g.beginPath();g.arc(Math.random()*W,Math.random()*H,Math.random()*30,0,7);g.fill()}g.globalAlpha=1;
+ const skin={cmd:'#b98a62',intel:'#c4956b',logi:'#a8794f',sheikh:'#9e7048',mother:'#c79a72',child:'#d2a47a',gov:'#bb8c64'}[k],sk2=shade(skin,-28),cx=W/2,hy=118;
+ const body=(col,col2)=>{g.fillStyle=col;g.beginPath();g.moveTo(20,H);g.quadraticCurveTo(28,196,cx-34,184);g.lineTo(cx+34,184);g.quadraticCurveTo(W-28,196,W-20,H);g.closePath();g.fill();
+  g.fillStyle=col2;g.beginPath();g.moveTo(20,H);g.quadraticCurveTo(26,210,cx-40,190);g.lineTo(cx-30,H);g.closePath();g.fill()};
+ const neck=()=>{g.fillStyle=sk2;g.fillRect(cx-17,150,34,40)};
+ const head=(rx,ry)=>{g.fillStyle=skin;g.beginPath();g.ellipse(cx,hy,rx||40,ry||50,0,0,7);g.fill();g.fillStyle=sk2;g.beginPath();g.ellipse(cx-(rx||40),hy+4,7,12,0,0,7);g.ellipse(cx+(rx||40),hy+4,7,12,0,0,7);g.fill();
+  const sh=g.createLinearGradient(cx-40,0,cx+40,0);sh.addColorStop(0,'rgba(0,0,0,.18)');sh.addColorStop(.5,'rgba(0,0,0,0)');sh.addColorStop(1,'rgba(0,0,0,.12)');g.fillStyle=sh;g.beginPath();g.ellipse(cx,hy,rx||40,ry||50,0,0,7);g.fill()};
+ const face=(o)=>{o=o||{};const ey=hy-6;g.fillStyle='#2a1c12';g.fillRect(cx-25,ey-14,18,4);g.fillRect(cx+7,ey-14,18,4);
+  for(const s of [-1,1]){g.fillStyle='#f4efe6';g.beginPath();g.ellipse(cx+s*16,ey,8,5,0,0,7);g.fill();g.fillStyle='#3a2414';g.beginPath();g.arc(cx+s*16,ey,3.4,0,7);g.fill();g.fillStyle='#fff';g.fillRect(cx+s*16-1,ey-2,1.5,1.5)}
+  g.strokeStyle=sk2;g.lineWidth=2;g.beginPath();g.moveTo(cx,ey+2);g.lineTo(cx-4,ey+22);g.lineTo(cx+3,ey+24);g.stroke();
+  if(o.must){g.fillStyle=o.mc||'#2a1c12';g.beginPath();g.moveTo(cx-18,ey+32);g.quadraticCurveTo(cx,ey+24,cx+18,ey+32);g.quadraticCurveTo(cx,ey+30,cx-18,ey+32);g.fill()}
+  g.strokeStyle='#7a3a2a';g.lineWidth=2.2;g.beginPath();g.moveTo(cx-10,ey+38);g.quadraticCurveTo(cx,ey+(o.smile?44:41),cx+10,ey+38);g.stroke();
+  if(o.beard){g.fillStyle=o.bc||'#2a1c12';g.beginPath();g.moveTo(cx-38,hy+6);g.quadraticCurveTo(cx-34,hy+62,cx,hy+66);g.quadraticCurveTo(cx+34,hy+62,cx+38,hy+6);g.quadraticCurveTo(cx+22,hy+40,cx,hy+44);g.quadraticCurveTo(cx-22,hy+40,cx-38,hy+6);g.fill()}
+  if(o.glasses){g.strokeStyle='#222';g.lineWidth=2.5;g.strokeRect(cx-27,ey-8,22,15);g.strokeRect(cx+5,ey-8,22,15);g.beginPath();g.moveTo(cx-5,ey-2);g.lineTo(cx+5,ey-2);g.stroke()}};
+ const hair=(col,grey)=>{g.fillStyle=col;g.beginPath();g.ellipse(cx,hy-30,42,26,0,Math.PI,0);g.fill();if(grey){g.fillStyle='#bdb6aa';g.fillRect(cx-42,hy-14,6,16);g.fillRect(cx+36,hy-14,6,16)}};
+ const uniform=(col)=>{body(col,shade(col,-20));g.fillStyle=shade(col,-30);g.beginPath();g.moveTo(cx-34,184);g.lineTo(cx,214);g.lineTo(cx+34,184);g.lineTo(cx+20,184);g.lineTo(cx,200);g.lineTo(cx-20,184);g.fill();
+  g.fillStyle=shade(col,15);g.fillRect(30,200,44,10);g.fillRect(W-74,200,44,10);flagPatch(W-70,222)};
+ const flagPatch=(x,y)=>{g.fillStyle='#ce1126';g.fillRect(x,y,30,6);g.fillStyle='#fff';g.fillRect(x,y+6,30,6);g.fillStyle='#111';g.fillRect(x,y+12,30,6);g.fillStyle='#2f7a3a';g.font='bold 6px Tahoma';g.textAlign='center';g.fillText('الله أكبر',x+15,y+11)};
+ if(k==='cmd'){uniform('#5c6141');neck();head();hair('#2a1c12',true);face({must:1});g.fillStyle='#8f1d1d';g.beginPath();g.ellipse(cx+6,hy-38,50,20,-.18,0,7);g.fill();g.fillStyle='#d4af37';g.beginPath();g.arc(cx-18,hy-40,8,0,7);g.fill();
+  for(const x of [44,W-60]){g.fillStyle='#d4af37';g.fillRect(x,196,16,5);g.beginPath();g.arc(x+8,207,3,0,7);g.arc(x+8,215,3,0,7);g.fill()}g.fillStyle='#8f1d1d';g.fillRect(cx-50,226,22,4)}
+ else if(k==='intel'){uniform('#4a5638');neck();head();hair('#1e1610');face({must:1,glasses:1});g.fillStyle='#2f4a2a';g.beginPath();g.ellipse(cx+4,hy-38,48,18,-.15,0,7);g.fill();g.fillStyle='#d4af37';g.fillRect(cx-20,hy-44,8,8)}
+ else if(k==='logi'){uniform('#6a6544');neck();head();face({beard:1,bc:'#2a1c12',must:1});g.fillStyle='#5f5a3c';g.beginPath();g.ellipse(cx,hy-34,44,24,0,Math.PI,0);g.fill();g.fillRect(cx-46,hy-36,92,8);g.fillStyle='#4f4a30';g.fillRect(cx-4,hy-38,40,6)}
+ else if(k==='sheikh'){body('#5a3a1e','#4a2e16');g.fillStyle='#d4af37';g.fillRect(cx-46,186,6,H);g.fillRect(cx+40,186,6,H);g.fillStyle='#f2efe6';g.beginPath();g.moveTo(cx-38,186);g.lineTo(cx+38,186);g.lineTo(cx+30,H);g.lineTo(cx-30,H);g.fill();neck();head();face({must:1,mc:'#e8e4da',beard:1,bc:'#e8e4da'});
+  g.fillStyle='#f4f1ea';g.beginPath();g.moveTo(cx-54,hy-30);g.quadraticCurveTo(cx,hy-82,cx+54,hy-30);g.lineTo(cx+58,hy+60);g.lineTo(cx+44,hy+70);g.lineTo(cx+40,hy-18);g.lineTo(cx-40,hy-18);g.lineTo(cx-44,hy+70);g.lineTo(cx-58,hy+60);g.fill();
+  g.fillStyle='#c4202a';for(let i=0;i<14;i++){g.fillRect(cx-50+i*7,hy-40+Math.abs(i-7)*-1.5,3,3)}for(let i=0;i<8;i++){g.fillRect(cx-56+i*2,hy-10+i*9,3,3);g.fillRect(cx+50-i*2,hy-10+i*9,3,3)}
+  g.fillStyle='#111';g.beginPath();g.ellipse(cx,hy-34,46,9,0,0,7);g.fill();g.beginPath();g.ellipse(cx,hy-26,44,7,0,0,7);g.fill()}
+ else if(k==='mother'){body('#151515','#0a0a0a');g.fillStyle='#151515';g.beginPath();g.ellipse(cx,hy+8,54,70,0,0,7);g.fill();head(36,46);face({smile:1});g.fillStyle='#151515';g.beginPath();g.moveTo(cx-56,hy+20);g.quadraticCurveTo(cx-50,hy-70,cx,hy-62);g.quadraticCurveTo(cx+50,hy-70,cx+56,hy+20);g.quadraticCurveTo(cx+40,hy-30,cx,hy-40);g.quadraticCurveTo(cx-40,hy-30,cx-56,hy+20);g.fill();
+  g.strokeStyle='#6b5a3a';g.lineWidth=3;g.beginPath();g.moveTo(W-58,H);g.lineTo(W-50,150);g.stroke();flagBig(W-50,150)}
+ else if(k==='child'){body('#3a6ea8','#2f5a8a');neck();head(36,44);hair('#1e1610');face({smile:1});g.fillStyle='#ce1126';g.fillRect(cx+18,hy+14,10,3);g.fillStyle='#fff';g.fillRect(cx+18,hy+17,10,3);g.fillStyle='#111';g.fillRect(cx+18,hy+20,10,3);
+  g.strokeStyle='#6b5a3a';g.lineWidth=3;g.beginPath();g.moveTo(54,H);g.lineTo(46,140);g.stroke();flagBig(46,140)}
+ else if(k==='gov'){body('#2a2a30','#1e1e24');g.fillStyle='#f2f2f2';g.beginPath();g.moveTo(cx-24,184);g.lineTo(cx,240);g.lineTo(cx+24,184);g.fill();g.fillStyle='#7a1a22';g.beginPath();g.moveTo(cx-6,192);g.lineTo(cx+6,192);g.lineTo(cx+8,236);g.lineTo(cx,246);g.lineTo(cx-8,236);g.fill();neck();head();hair('#2a1c12',true);face({must:1,glasses:1})}
+ const v=c.getContext('2d').createRadialGradient(W/2,H/2,H*.3,W/2,H/2,H*.75);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.45)');g.fillStyle=v;g.fillRect(0,0,W,H);
+ try{PORTR[k]=c.toDataURL()}catch(e){PORTR[k]=''}return PORTR[k];
+ function flagBig(x,y){g.fillStyle='#ce1126';g.fillRect(x,y,56,12);g.fillStyle='#fff';g.fillRect(x,y+12,56,12);g.fillStyle='#111';g.fillRect(x,y+24,56,12);g.fillStyle='#2f7a3a';g.font='bold 9px Tahoma';g.textAlign='center';g.fillText('الله أكبر',x+28,y+21)}
+ function shade(h,d){const n=parseInt(h.slice(1),16);const r=Math.max(0,Math.min(255,(n>>16)+d)),gg=Math.max(0,Math.min(255,((n>>8)&255)+d)),b=Math.max(0,Math.min(255,(n&255)+d));return '#'+((1<<24)+(r<<16)+(gg<<8)+b).toString(16).slice(1)}}
+// ================= مشاهد القصة (حوار + خلفية متحركة + صوت) =================
+let SCENE=null;
+function speakLine(txt,done){if(!voiceOn||!('speechSynthesis' in window)||!arVoice){setTimeout(done,Math.max(2200,txt.length*55));return}try{speechSynthesis.cancel();const m=new SpeechSynthesisUtterance(txt);m.voice=arVoice;m.lang=arVoice.lang;m.rate=1.0;m.pitch=1;m.volume=1;let fired=false;const f=()=>{if(!fired){fired=true;done()}};m.onend=f;m.onerror=f;speechSynthesis.speak(m);setTimeout(f,txt.length*120+3000)}catch(e){setTimeout(done,2500)}}
+function playScene(sc){SCENE={lines:sc.lines,i:-1,bg:sc.bg,end:sc.end,track:sc.track||'victory',t0:performance.now(),fw:[],buttons:sc.buttons};$('ovScene').classList.remove('hide');if(running&&!paused){SCENE.paused=true;paused=true}
+ sceneNext();requestAnimationFrame(sceneDraw)}
+function sceneNext(){if(!SCENE)return;SCENE.i++;const L=SCENE.lines[SCENE.i];if(!L){sceneFinish();return}const C=CAST[L.who];$('scPort').src=castPortrait(C.k);$('scName').textContent=C.n;$('scTitle').textContent=C.t;
+ const el=$('scText');el.textContent='';let n=0;clearInterval(SCENE.typ);SCENE.typ=setInterval(()=>{n+=2;el.textContent=L.text.slice(0,n);if(n>=L.text.length)clearInterval(SCENE.typ)},28);
+ $('scNext').textContent=SCENE.i===SCENE.lines.length-1&&!SCENE.buttons?'إنهاء ✔':'التالي ◀';$('scBtns').innerHTML='';const myI=SCENE.i;speakLine(L.text,()=>{if(SCENE&&SCENE.i===myI&&SCENE.auto)setTimeout(()=>{if(SCENE&&SCENE.i===myI)sceneNext()},700)})}
+function sceneFinish(){if(!SCENE)return;if(SCENE.buttons&&!SCENE.btnShown){SCENE.btnShown=true;SCENE.i=SCENE.lines.length-1;$('scBtns').innerHTML='';for(const b of SCENE.buttons){const e=document.createElement('button');e.className=b.big?'big':'';e.textContent=b.t;e.onclick=()=>{const fn=b.fn;sceneClose();fn&&fn()};$('scBtns').appendChild(e)}$('scNext').style.display='none';return}const S0=SCENE;sceneClose();if(S0&&S0.end&&!S0.btnShown)S0.end()}
+function sceneClose(){if(!SCENE)return;clearInterval(SCENE.typ);try{speechSynthesis.cancel()}catch(e){}const S=SCENE;SCENE=null;$('ovScene').classList.add('hide');$('scNext').style.display='';if(S.paused&&running)paused=false;if(S.end&&S.btnShown)S.end()}
+function sceneDraw(now){if(!SCENE)return;requestAnimationFrame(sceneDraw);const cv=$('scBg'),W=cv.clientWidth,H=cv.clientHeight;if(cv.width!==W){cv.width=W;cv.height=H}const g=cv.getContext('2d'),t=(now-SCENE.t0)/1000;if(SCENE.bg==='room')drawRoom(g,W,H,t);else drawCelebration(g,W,H,t,SCENE.fw)}
+function drawCelebration(g,W,H,t,fw){const sky=g.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#1a1e3a');sky.addColorStop(.55,'#5a3a4a');sky.addColorStop(1,'#c27a4a');g.fillStyle=sky;g.fillRect(0,0,W,H);
+ if(Math.random()<.06||fw.length<1)fw.push({x:W*(.15+Math.random()*.7),y:H*(.12+Math.random()*.25),t:t,c:['#ff5a4a','#ffffff','#5adf7a','#ffd24a','#6ab0ff'][Math.floor(Math.random()*5)]});
+ for(let i=fw.length-1;i>=0;i--){const f=fw[i],a=t-f.t;if(a>2.2){fw.splice(i,1);continue}g.globalAlpha=Math.max(0,1-a/2.2);for(let k=0;k<36;k++){const an=k/36*6.283,r=a*90*(1-a*.15);g.fillStyle=f.c;g.fillRect(f.x+Math.cos(an)*r,f.y+Math.sin(an)*r+a*a*12,3,3)}g.globalAlpha=1}
+ const base=H*.62;g.fillStyle='#2a1e1a';for(let i=0;i<14;i++){const x=i*W/13-20,w=W/11,h=60+((i*37)%5)*22;g.fillRect(x,base-h,w,h+10);g.fillStyle='#3a2a22';g.fillRect(x+w*.2,base-h+18,w*.6,26);g.fillStyle='#e8b46a';for(let j=0;j<3;j++)if((i+j)%2)g.fillRect(x+w*.25+j*w*.18,base-h+24,w*.1,12);g.fillStyle='#2a1e1a'}
+ for(const px of [.08,.3,.72,.93]){const x=W*px;g.strokeStyle='#1a1410';g.lineWidth=6;g.beginPath();g.moveTo(x,base+20);g.quadraticCurveTo(x+8,base-60,x+4,base-120);g.stroke();g.fillStyle='#1d2a16';for(let k=0;k<7;k++){const a=k/7*6.28;g.beginPath();g.ellipse(x+4+Math.cos(a)*24,base-122+Math.sin(a)*8,26,6,a,0,7);g.fill()}}
+ g.fillStyle='#3a2a1e';g.fillRect(0,base,W,H-base);
+ for(let i=0;i<46;i++){const x=(i*W/44+(i%3)*9)%W,row=i%3,y=base+28+row*34,sc=1+row*.25,sw=Math.sin(t*3+i)*.25;g.save();g.translate(x,y);g.scale(sc,sc);
+  g.fillStyle=['#e8e2d2','#151515','#2a3a5a','#6a3a2a','#e8e2d2'][i%5];g.beginPath();g.ellipse(0,0,10,22,0,0,7);g.fill();g.fillStyle='#8a5a3a';g.beginPath();g.arc(0,-28,8,0,7);g.fill();if(i%5===1){g.fillStyle='#151515';g.beginPath();g.arc(0,-29,9,Math.PI,0);g.fill()}
+  if(i%2===0){g.rotate(sw-.4);g.strokeStyle='#5a4a30';g.lineWidth=2;g.beginPath();g.moveTo(8,-16);g.lineTo(18,-58);g.stroke();g.fillStyle='#ce1126';g.fillRect(18,-58,24,6);g.fillStyle='#fff';g.fillRect(18,-52,24,6);g.fillStyle='#111';g.fillRect(18,-46,24,6)}g.restore()}
+ g.fillStyle='rgba(0,0,0,.25)';g.fillRect(0,H*.78,W,H*.22)}
+let roomMap=null;
+function drawRoom(g,W,H,t){g.fillStyle='#1a1812';g.fillRect(0,0,W,H);const lamp=g.createRadialGradient(W/2,H*.42,20,W/2,H*.5,W*.55);lamp.addColorStop(0,'rgba(255,220,150,.32)');lamp.addColorStop(1,'rgba(0,0,0,0)');
+ g.fillStyle='#2a261c';g.fillRect(0,0,W,H*.55);g.fillStyle='#ce1126';g.fillRect(W*.06,H*.08,W*.12,H*.05);g.fillStyle='#fff';g.fillRect(W*.06,H*.13,W*.12,H*.05);g.fillStyle='#111';g.fillRect(W*.06,H*.18,W*.12,H*.05);
+ g.fillStyle='#10140f';g.fillRect(W*.72,H*.07,W*.22,H*.2);g.strokeStyle='#3a5a3a';g.lineWidth=2;g.strokeRect(W*.72,H*.07,W*.22,H*.2);g.fillStyle='#5adf7a';for(let i=0;i<6;i++)g.fillRect(W*.74,H*(.1+i*.028),W*.08+((i*37+Math.floor(t*2))%9)*6,3);
+ g.fillStyle='#4a3a26';g.beginPath();g.ellipse(W/2,H*.62,W*.42,H*.2,0,0,7);g.fill();g.fillStyle='#5c4a30';g.beginPath();g.ellipse(W/2,H*.6,W*.4,H*.18,0,0,7);g.fill();
+ if(!roomMap&&typeof CAMPGEO!=='undefined'){roomMap=CAMPGEO.P}if(roomMap){g.save();g.translate(W/2-W*.17,H*.6-H*.16);g.scale(W*.34/960,H*.3/960);g.translate(-70,-70);g.transform(1,0,0,1,0,0);
+  for(const k in roomMap){const p=new Path2D(roomMap[k]);const st=CAMP?provState(k):'locked';g.fillStyle={lib:'#3a77ad',front:'#b8834a',open:'#9a4a38',enemy:'#5e2f27',locked:'#4a4434'}[st]||'#4a4434';g.fill(p);g.strokeStyle='#1a1610';g.lineWidth=3;g.stroke(p)}g.restore()}
+ g.fillStyle=lamp;g.fillRect(0,0,W,H);for(const [x,s] of [[.15,1],[.85,1],[.3,.8],[.7,.8]]){g.fillStyle='#14120c';g.beginPath();g.ellipse(W*x,H*.66,34*s,60*s,0,0,7);g.fill();g.beginPath();g.arc(W*x,H*.66-70*s,20*s,0,7);g.fill()}}
+// ================= الاحتفال على الخريطة =================
+let civs=[],fworks=[];
+function zaghrouta(){if(!AC||!sndOn)return;const t=AC.currentTime;for(let v=0;v<3;v++){const o=AC.createOscillator(),lfo=AC.createOscillator(),lg=AC.createGain(),g=AC.createGain();o.type='sine';o.frequency.value=880+v*70;lfo.frequency.value=13+v*1.5;lg.gain.value=90;lfo.connect(lg);lg.connect(o.frequency);
+ const st=t+v*.35;g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.09,st+.08);g.gain.setValueAtTime(.09,st+1.6);g.gain.linearRampToValueAtTime(0,st+1.9);o.connect(g);g.connect(master);o.start(st);lfo.start(st);o.stop(st+2);lfo.stop(st+2)}}
+function townNear(x,y){const D_=M.data;let best=null,bd=1e9;if(D_&&D_.towns)for(const [n,tx,ty] of D_.towns){const d=Math.hypot(tx*T-x,ty*T-y);if(d<bd){bd=d;best={n,x:tx*T,y:ty*T}}}
+ if(!best||bd>40*T){const r=(RUINS||[]).map(([a,b])=>({n:null,x:(a+1)*T,y:(b+.5)*T})).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];if(r&&(!best||Math.hypot(r.x-x,r.y-y)<bd))best=r}return best||{n:null,x,y}}
+function celebrate(x,y,big){const tw=townNear(x,y);const n=big?26:14;for(let i=0;i<n;i++){let px=tw.x+rnd(-4,4)*T,py=tw.y+rnd(-3,3)*T;const tx=Math.floor(px/T),ty=Math.floor(py/T);if(!passT(tx,ty)){const f=nearestFree(tx,ty,tx,ty);if(f){px=(f[0]+.5)*T;py=(f[1]+.5)*T}}civs.push({x:px,y:py,ph:Math.random()*6,k:i%5,flag:i%2===0,until:frame+(big?150:90)*60})}
+ for(let i=0;i<(big?10:5);i++)fworks.push({x:tw.x+rnd(-3,3)*T,y:tw.y+rnd(-3,3)*T,t:frame+i*40,c:['#ff5a4a','#fff','#5adf7a','#ffd24a'][i%4]});zaghrouta();setTimeout(zaghrouta,2300);return tw}
+function drawCivs(c){if(!civs.length&&!fworks.length)return;civs=civs.filter(v=>frame<v.until);for(const v of civs){if(!onScreen(v.x,v.y,30))continue;const b=Math.abs(Math.sin(frame*.12+v.ph))*3;c.save();c.translate(v.x,v.y-b);
+  c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,b+6,6,3,0,0,TAU);c.fill();c.fillStyle=['#ece6d6','#151515','#2a3a5a','#6a3a2a','#d8d0bc'][v.k];c.beginPath();c.ellipse(0,0,4.5,7,0,0,TAU);c.fill();c.fillStyle='#8a5a3a';c.beginPath();c.arc(0,-9,3.2,0,TAU);c.fill();
+  if(v.k===1){c.fillStyle='#151515';c.beginPath();c.arc(0,-9.5,3.6,Math.PI,0);c.fill()}if(v.flag){const sw=Math.sin(frame*.2+v.ph)*.4;c.rotate(sw);c.strokeStyle='#5a4a30';c.lineWidth=1;c.beginPath();c.moveTo(3,-4);c.lineTo(6,-22);c.stroke();c.fillStyle='#ce1126';c.fillRect(6,-22,10,2.5);c.fillStyle='#fff';c.fillRect(6,-19.5,10,2.5);c.fillStyle='#111';c.fillRect(6,-17,10,2.5)}c.restore()}
+ fworks=fworks.filter(f=>frame-f.t<120);for(const f of fworks){const a=frame-f.t;if(a<0)continue;c.globalAlpha=Math.max(0,1-a/120);for(let k=0;k<24;k++){const an=k/24*TAU,r=a*.9;c.fillStyle=f.c;c.fillRect(f.x+Math.cos(an)*r,f.y-70+Math.sin(an)*r+a*a*.004,2.5,2.5)}c.globalAlpha=1;if(a===1&&f.t%3===0)sfx('boom',f.x,f.y)}}
+const TOWN_LINES=[['sheikh','أهلاً وسهلاً بأبطال الجيش العراقي! أهالي {t} يفتحون بيوتهم لكم'],['mother','الله يحفظكم يا أبنائي، رجعتم لنا الأمان في {t}'],['child','شكراً للجيش! صار نقدر نلعب بالشارع مرة ثانية'],['gov','باسم أهالي {t} نشكر قواتنا المسلحة على تحرير منطقتنا']];
+function townToast(tw,postName){const L=TOWN_LINES[Math.floor(Math.random()*TOWN_LINES.length)];const tn=tw.n||postName;const txt=L[1].replace('{t}',tn);const C=CAST[L[0]];
+ const el=$('scToast');el.innerHTML=`<img src="${castPortrait(C.k)}"><div><b>${C.n}</b><span>${C.t}</span><p>${txt}</p></div>`;el.classList.remove('hide');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.add('hide'),9000);speakLine(txt,()=>{})}
+function onPostLiberated(p){if(MODE!=='base')return;const P=posts[p];const tw=celebrate(P.x,P.y,false);setTimeout(()=>townToast(tw,P.name),2500)}
+// ================= مشهد تحرير المحافظة + اجتماع القيادة =================
+function recFor(k){const s=(PROV_DEF[k]&&PROV_DEF[k].stars)||2;return{tank:2+s,apc:1+Math.ceil(s/2),aa:s>=3?2:1,arty:s>=3?1:0,rifle:8+s*4,rpg:3+s,engineer:1,medic:1,supply:1}}
+function provLiberationScene(){if(!PROV||!PROV_DEF[PROV])return;const pn=PROV_AR[PROV];celebrate(posts[0]?posts[0].x:cam.x,posts[0]?posts[0].y:cam.y,true);
+ const fronts=CONV_P.filter(k=>k!==PROV&&['open','front'].includes(provState(k)));const mins=Math.max(1,Math.round(frame/3600));
+ const L1=[{who:'gov',text:`باسم أهالي ${pn} جميعاً، نشكر قواتنا الباسلة. اليوم عادت ${pn} حرة، والفرحة في كل بيت.`},{who:'sheikh',text:'رجال العشائر كانوا وسيبقون سنداً لجيشهم. أبوابنا مفتوحة لكم، والعقرب لن يعود لأرضنا.'},{who:'mother',text:'الحمد لله، رجع الأمان ورجع أولادنا لبيوتهم. الله يحفظ كل جندي.'},{who:'child',text:'شكراً للجيش! لما أكبر أريد أصير جندي مثلكم.'}];
+ const L2=[{who:'cmd',text:`بدأ اجتماع قيادة العمليات. تحررت ${pn} خلال ${mins} دقيقة. دمرنا ${stats.kills||0} من مقاتلي العدو و${stats.bk||0} من منشآته، وخسرنا ${stats.lost||0} وحدة.`}];
+ if(fronts.length){L2.push({who:'intel',text:'التقديرات الاستخبارية للجبهات المتاحة: '+fronts.map(k=>`${PROV_AR[k]}، ${PROV_DEF[k].ter}، قوة العدو ${['','ضعيفة','متوسطة','قوية','قوية جداً','كبيرة'][PROV_DEF[k].stars]||'متوسطة'}`).join('. ')+'.'});
+  const f0=fronts[0],r=recFor(f0);L2.push({who:'logi',text:`للتوجه إلى ${PROV_AR[f0]} أوصي بنقل ${r.tank} دبابات و${r.apc} مدرعات و${r.rifle} جندي مشاة و${r.rpg} جنود صواريخ مع إسعاف وشاحنة إمداد ومهندس. الخطة جاهزة للاعتماد.`});
+  L2.push({who:'cmd',text:'القرار لك أيها القائد. اختر الجبهة التالية، وسنجهز الرتل فوراً.'})}
+ else L2.push({who:'cmd',text:'لا توجد جبهة مفتوحة حالياً. عزز دفاعاتك وانتظر الأوامر.'});
+ const buttons=fronts.map(k=>({t:'🎯 التوجه إلى '+PROV_AR[k]+' — اعتماد خطة النقل',big:1,fn:()=>openPlannedConvoy(PROV,k)})).concat([{t:'لاحقاً',fn:null}]);
+ playScene({bg:'street',track:'victory',lines:L1,end:()=>setTimeout(()=>playScene({bg:'room',track:'meeting',lines:L2,buttons}),400)})}
+function openPlannedConvoy(from,to){openCamp();setTimeout(()=>{const avail={};for(const e of convUnitsIn(from))avail[e.t]=(avail[e.t]||0)+1;const r=recFor(to),pick={};for(const t in r)if(avail[t])pick[t]=Math.min(r[t],avail[t]);convOpen({from,to,pick})},400)}
+// ================= الموسيقى (مؤلفة بالكود — مقام الحجاز) =================
+let musicOn=true;try{musicOn=localStorage.getItem('khatAlnar.music')!=='0'}catch(e){}
+const MUS={gain:null,track:null,want:'menu',next:0,step:0,bar:0,seed:1};
+const HIJ=[0,1,4,5,7,8,10,12,13,16,17,19];const D3=146.83;const nf=(deg,oct)=>D3*Math.pow(2,(HIJ[((deg%7)+7)%7]+12*(oct||0)+12*Math.floor(deg/7))/12);
+function mInit(){if(!AC||MUS.gain)return;MUS.gain=AC.createGain();MUS.gain.gain.value=musicOn?.0:0;MUS.gain.connect(AC.destination);MUS.comp=AC.createDynamicsCompressor();MUS.comp.connect(MUS.gain);
+ MUS.rev=AC.createConvolver();const len=AC.sampleRate*2.2,b=AC.createBuffer(2,len,AC.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6)}MUS.rev.buffer=b;const rg=AC.createGain();rg.gain.value=.25;MUS.rev.connect(rg);rg.connect(MUS.comp);setInterval(mSched,90)}
+function mOut(node,wet){node.connect(MUS.comp);if(wet)node.connect(MUS.rev)}
+function mKick(t,v){const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(38,t+.32);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.45);o.connect(g);mOut(g,1);o.start(t);o.stop(t+.5)}
+function mTom(t,f,v){const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*.55,t+.3);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.35);o.connect(g);mOut(g,1);o.start(t);o.stop(t+.4)}
+function mSnare(t,v){const s=AC.createBufferSource();s.buffer=noiseB;const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=1900;f.Q.value=.8;const g=AC.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.16);s.connect(f);f.connect(g);mOut(g,1);s.start(t,Math.random());s.stop(t+.2)}
+function mCym(t,v){const s=AC.createBufferSource();s.buffer=noiseB;const f=AC.createBiquadFilter();f.type='highpass';f.frequency.value=6000;const g=AC.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+1.6);s.connect(f);f.connect(g);mOut(g,1);s.start(t,Math.random());s.stop(t+1.7)}
+function mBrass(t,f,d,v){const g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=2;lp.frequency.setValueAtTime(500,t);lp.frequency.linearRampToValueAtTime(2600,t+.08);lp.frequency.exponentialRampToValueAtTime(1100,t+d);
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.05);g.gain.setValueAtTime(v*.85,t+d*.8);g.gain.linearRampToValueAtTime(0,t+d+.12);const vib=AC.createOscillator(),vg=AC.createGain();vib.frequency.value=5.5;vg.gain.setValueAtTime(0,t);vg.gain.linearRampToValueAtTime(f*.008,t+.25);vib.connect(vg);
+ for(const dt of [-6,6,0]){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=dt;vg.connect(o.frequency);o.connect(lp);o.start(t);o.stop(t+d+.2)}lp.connect(g);mOut(g,1);vib.start(t);vib.stop(t+d+.2)}
+function mPad(t,fs,d,v){const g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1300;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.6);g.gain.setValueAtTime(v,t+d-.4);g.gain.linearRampToValueAtTime(0,t+d+.5);
+ for(const f of fs)for(const dt of [-9,9]){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=dt;o.connect(lp);o.start(t);o.stop(t+d+.6)}lp.connect(g);mOut(g,1)}
+function mBass(t,f,d,v){const o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=600;o.type='triangle';o2.type='sawtooth';o.frequency.value=f;o2.frequency.value=f;
+ g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(lp);o2.connect(lp);lp.connect(g);mOut(g);o.start(t);o2.start(t);o.stop(t+d+.05);o2.stop(t+d+.05)}
+function mPluck(t,f,v){const o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(3500,t);lp.frequency.exponentialRampToValueAtTime(500,t+.4);o.type='sawtooth';o.frequency.setValueAtTime(f*1.01,t);o.frequency.exponentialRampToValueAtTime(f,t+.05);
+ g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.7);o.connect(lp);lp.connect(g);mOut(g,1);o.start(t);o.stop(t+.75)}
+const MOT=[[0,2,3,4,3,2,1,0],[4,5,4,3,2,3,1,0],[7,6,5,4,5,4,3,4],[0,1,2,3,4,4,5,4],[4,3,2,1,2,1,0,0],[2,3,4,7,6,5,4,3]];
+const RHY=[[1,.5,.5,1,1,2,1,1],[.5,.5,1,.5,.5,1,2,2],[1.5,.5,1,1,1.5,.5,1,1]];
+const TRK={menu:{bpm:72},battle:{bpm:104},victory:{bpm:118},meeting:{bpm:66}};
+function mWant(){if(SCENE)return SCENE.track;if(running&&MODE)return 'battle';return 'menu'}
+function mSched(){if(!AC||!MUS.gain)return;const want=musicOn?mWant():null;
+ if(want!==MUS.cur){MUS.cur=want;const t=AC.currentTime;MUS.gain.gain.cancelScheduledValues(t);MUS.gain.gain.setValueAtTime(MUS.gain.gain.value,t);MUS.gain.gain.linearRampToValueAtTime(0,t+.5);MUS.track=null;clearTimeout(MUS.to);
+  if(want)MUS.to=setTimeout(()=>{MUS.track=want;MUS.step=0;MUS.bar=0;MUS.next=AC.currentTime+.1;const t2=AC.currentTime;MUS.gain.gain.cancelScheduledValues(t2);MUS.gain.gain.setValueAtTime(0,t2);MUS.gain.gain.linearRampToValueAtTime(want==='battle'?.13:.17,t2+1.2)},600);return}
+ if(!MUS.track)return;const tr=MUS.track,bpm=TRK[tr].bpm,q=60/bpm;while(MUS.next<AC.currentTime+.45){const t=MUS.next,st=MUS.step%16,bar=MUS.bar;mStep(tr,t,st,bar,q);MUS.next+=q/4;MUS.step++;if(MUS.step%16===0)MUS.bar++}}
+function mStep(tr,t,s,bar,q){const sec=Math.floor(bar/4)%4,root=[0,0,3,4][sec%4],m=MOT[(bar*7+sec*3)%MOT.length];
+ if(tr==='battle'){if(s%4===0)mKick(t,s===0?.9:.6);if(s===6||s===14)mKick(t,.45);if(s%8===4)mSnare(t,.45);if(bar%4===3&&s>=12)mSnare(t,.18+(s-12)*.08);if(s%2===1)mSnare(t,.06);if(s===10)mTom(t,140,.35);
+  if(s%2===0)mBass(t,nf([0,0,4,0,1,0,6,0][(s/2)%8]+root,-1)/2,q*.45,.26);if(s===0&&bar%2===0)mPad(t,[nf(root,0),nf(root+4,0)],q*8,.04);
+  if(bar%4>=2){const idx=Math.floor(s/2);if(s%2===0&&idx<8&&(idx%2===0||bar%2))mBrass(t,nf(m[idx]+root,1),q*.48,.07)}if(s===0&&bar%8===0)mCym(t,.12)}
+ else if(tr==='menu'){if(s===0)mKick(t,.7);if(s===8)mTom(t,95,.5);if(s===12&&bar%2)mTom(t,120,.3);if(s===0)mPad(t,[nf(root,-1),nf(root+4,-1),nf(root+2,0)],q*4,.05);if(s===0&&bar%4===0)mCym(t,.08);
+  if(bar%8>=4){if(s%4===0){const idx=(s/4)+((bar%2)*4);mBrass(t,nf(m[idx%8]+root,0),q*.95,.08)}}else if(s%2===0)mPluck(t,nf(m[(s/2)%8]+root,1),.05)}
+ else if(tr==='victory'){if(s%4===0)mKick(t,.8);if(s%4===2)mSnare(t,.35);if(s>=12&&bar%2)mSnare(t,.25);if(s===0)mCym(t,.14);
+  const FAN=[[0,2,4,7],[4,7,9,7],[3,5,7,10],[4,6,7,11]][bar%4];if(s%4===0)mBrass(t,nf(FAN[s/4],1),q*.9,.08);if(s%4===0)mBrass(t,nf(FAN[s/4]-2,0),q*.9,.05);if(s%2===0)mBass(t,nf(FAN[0],-1)/2,q*.4,.25);if(s===0)mPad(t,[nf(FAN[0],0),nf(FAN[0]+2,0),nf(FAN[0]+4,0)],q*4,.04)}
+ else if(tr==='meeting'){if(s===0)mTom(t,70,.45);if(s===8&&bar%2)mTom(t,70,.3);if(s===0)mPad(t,[nf(root,-1),nf(root+2,-1)],q*4,.06);if(s%4===2&&Math.sin(bar*13+s)>.2)mPluck(t,nf(m[(s+bar)%8]+root,0),.04)}}
+
 // ================= الحلقة الرئيسية =================
 function update(){
  frame++;
@@ -1451,7 +1596,7 @@ function update(){
  if(frame%60===0){updHUD();checkEnd()}
 }
 function checkEnd(){if(over)return;
- if(MODE==='base'){if(!allPostsMsg&&posts.every(p=>p.dead)){allPostsMsg=true;terrDirty=true;if(PROV){campRecord();campSave();msg('🏆 تحررت محافظة '+PROV_AR[PROV]+'! صارت المحافظة كلها ضمن قاعدتك، وتوقفت هجمات العصابة هنا — افتح خريطة الحملة 🗺 لفتح جبهة جديدة','#7fd35a');say('تحررت المحافظة',true);sfx('done')}else msg('🏆 حررت كل المراكز! الغارات من خارج الخريطة ستستمر','#7fd35a')}}
+ if(MODE==='base'){if(!allPostsMsg&&posts.every(p=>p.dead)){allPostsMsg=true;terrDirty=true;if(PROV){campRecord();campSave();msg('🏆 تحررت محافظة '+PROV_AR[PROV]+'! صارت المحافظة كلها ضمن قاعدتك، وتوقفت هجمات العصابة هنا — افتح خريطة الحملة 🗺 لفتح جبهة جديدة','#7fd35a');say('تحررت المحافظة',true);sfx('done');setTimeout(()=>{try{provLiberationScene()}catch(e){console.warn(e)}},3500)}else msg('🏆 حررت كل المراكز! الغارات من خارج الخريطة ستستمر','#7fd35a')}}
  else if(!ents.some(e=>e.kind==='bld'&&e.team===1&&!e.dead))return endGame(true);
  const hasB=ents.some(e=>e.team===0&&!e.dead&&(e.kind==='bld'||(e.kind==='unit'&&e.def.build)));const hasA=ents.some(e=>e.team===0&&!e.dead&&e.kind==='unit'&&e.def.wp&&!e.def.nav);
  if(!hasB&&!hasA)endGame(false)}
@@ -2026,7 +2171,7 @@ function render(){
   ctx.fillStyle='rgba(120,150,170,.35)';ctx.beginPath();ctx.ellipse(o.x-2,o.y-1.5,3.5*k+1,1.6*k+.6,o.ph,0,TAU);ctx.fill()}
  drawBorder(ctx);drawPipes(ctx);const dl=[];
  for(const b of ents){if(b.kind!=='bld'||b.dead||!onScreen(b.x,b.y-b.def.hk,b.w*T+b.def.top)||!expE(b))continue;dl.push([(b.ty+b.h)*T,b])}
- drawBridges(ctx);drawCorpses(ctx);drawIEDs(ctx);
+ drawBridges(ctx);drawCorpses(ctx);drawIEDs(ctx);drawCivs(ctx);
  for(const u of ents){if(u.kind!=='unit'||u.dead||u.inside||u.def.air||!onScreen(u.x,u.y,30))continue;if(u.team===1&&!visE(u))continue;dl.push([u.y,u])}
  dl.sort((a,b)=>a[0]-b[0]);
  for(const [,e] of dl){if(e.kind==='unit'){drawUnit(ctx,e);continue}if(e.def.wallish){drawWall(ctx,e);continue}
@@ -2094,7 +2239,7 @@ function drawMini(){mctx.drawImage(miniC,0,0);
 // ================= الصوت =================
 let AC=null,master=null,noiseB=null,sndOn=true;const lastS={};
 function initAudio(){if(AC){if(AC.state==='suspended')AC.resume();return}try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.3;master.connect(AC.destination);
- const len=AC.sampleRate;noiseB=AC.createBuffer(1,len,AC.sampleRate);const d=noiseB.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1}catch(e){AC=null}}
+ const len=AC.sampleRate;noiseB=AC.createBuffer(1,len,AC.sampleRate);const d=noiseB.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;setTimeout(mInit,50)}catch(e){AC=null}}
 function nz(dur,ft,f1,vol,f2){const t=AC.currentTime,s=AC.createBufferSource();s.buffer=noiseB;const f=AC.createBiquadFilter();f.type=ft;f.frequency.setValueAtTime(f1,t);if(f2)f.frequency.exponentialRampToValueAtTime(f2,t+dur);
  const g=AC.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(f);f.connect(g);g.connect(master);s.start(t,Math.random()*.4);s.stop(t+dur+.05)}
 function tone(fq,dur,ty,vol,f2,dl){const t=AC.currentTime+(dl||0),o=AC.createOscillator();o.type=ty;o.frequency.setValueAtTime(fq,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);
@@ -2291,6 +2436,10 @@ window.addEventListener('resize',resize);
 function togglePause(){if(over||!terrC||!running&&!paused)return;paused=!paused;$('ovPause').classList.toggle('hide',!paused);['bSaveP','bExp'].forEach(i=>$(i).classList.toggle('hide',MODE!=='base'));$('saveNote').textContent=MODE==='base'?'القاعدة تُحفظ تلقائياً كل دقيقة وعند الإغلاق. آخر حفظ قبل '+Math.round((Date.now()-lastSave)/1000)+' ثانية.':''}
 $('bPause').onclick=togglePause;$('bResume').onclick=togglePause;
 $('bSpeed').onclick=()=>{speed=speed===1?1.5:speed===1.5?2:1;$('bSpeed').textContent='×'+speed};
+$('bMusic').style.opacity=musicOn?1:.4;$('bMusic').onclick=()=>{musicOn=!musicOn;try{localStorage.setItem('khatAlnar.music',musicOn?'1':'0')}catch(e){}$('bMusic').style.opacity=musicOn?1:.4;initAudio();msg(musicOn?'🎵 الموسيقى مفعّلة':'🎵 الموسيقى متوقفة')};
+$('scNext').onclick=()=>sceneNext();$('scSkip').onclick=()=>{if(SCENE){SCENE.i=SCENE.lines.length;sceneFinish()}};$('scAuto').onclick=()=>{if(SCENE){SCENE.auto=!SCENE.auto;$('scAuto').textContent=SCENE.auto?'⏸ إيقاف التلقائي':'▶ تشغيل تلقائي';if(SCENE.auto)sceneNext()}};
+addEventListener('keydown',e=>{if(!SCENE)return;if(e.key==='Escape'){SCENE.i=SCENE.lines.length;sceneFinish();e.stopPropagation()}else if(e.key===' '||e.key==='Enter'){sceneNext();e.preventDefault();e.stopPropagation()}},true);
+addEventListener('pointerdown',()=>{try{initAudio()}catch(e){}},{once:true});
 $('bNight').style.opacity=nightOn?1:.4;$('bNight').onclick=()=>{nightOn=!nightOn;try{localStorage.setItem('khatAlnar.night',nightOn?'1':'0')}catch(e){}$('bNight').style.opacity=nightOn?1:.4;msg(nightOn?'🌙 دورة الليل والنهار مفعّلة':'☀ نهار دائم — دورة الليل متوقفة');updHUD()};
 $('bVoice').onclick=()=>{voiceOn=!voiceOn;try{localStorage.setItem('khatAlnar.voice',voiceOn?'1':'0')}catch(e){}$('bVoice').style.opacity=voiceOn?1:.4;msg(voiceOn?(arVoice?'الردود الصوتية مفعّلة':'الردود الصوتية مفعّلة (لا يوجد صوت عربي في الجهاز — ستسمع إشارات اللاسلكي فقط)'):'الردود الصوتية متوقفة')};
 $('bSnd').onclick=()=>{sndOn=!sndOn;$('bSnd').textContent=sndOn?'🔊':'🔇'};
@@ -2394,7 +2543,7 @@ function newCampaign(){if(!confirm('بدء حملة جديدة؟\n\nسيُمسح
  _wiped=true;running=false;paused=false;try{const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&(k===CAMP_KEY||k.startsWith('khatAlnar.camp.')))ks.push(k)}ks.forEach(k=>localStorage.removeItem(k))}catch(e){}
  CAMP=null;PROV=null;$('ovPause').classList.add('hide');$('ovStart').classList.add('hide');msg('🔄 تم مسح الحملة — بداية جديدة','#f0c14b');openCamp()}
 const _svW=saveGame;saveGame=function(s){if(_wiped)return;return _svW(s)};
-const _sgW=startGame;startGame=function(...a){_wiped=false;return _sgW(...a)};
+const _sgW=startGame;startGame=function(...a){_wiped=false;civs=[];fworks=[];return _sgW(...a)};
 fillStart();
 const KEYS=[['زر أيسر','تحديد وحدة أو مبنى، أو اسحب لتحديد مجموعة'],['نقر مزدوج','تحديد كل الوحدات من نفس النوع على الشاشة'],['زر أيمن','تحريك / هجوم / توجيه الشاحنة للنفط / نقطة تجمع للمبنى'],['A ثم نقرة','هجوم أثناء التحرك (تقاتل أي عدو في الطريق)'],['S','إيقاف الوحدات'],['Shift + رقم','حفظ مجموعة، والرقم وحده لاستدعائها (مرتين للانتقال إليها)'],['E / Q','كل الجيش / الجيش الظاهر على الشاشة'],['الأسهم أو حافة الشاشة','تحريك الكاميرا، والزر الأوسط للسحب'],['عجلة الماوس','تكبير وتصغير'],['H','العودة للقاعدة'],['مسافة','الانتقال لمكان آخر هجوم'],['P','إيقاف مؤقت'],['Delete','بيع المبنى المحدد'],['النفط والبحر','اختر «شارع» أو «أنبوب» واسحب بالزر الأيسر للرسم، والزر الأيمن للإلغاء'],['🎖 الاصطفاف','حدد 3 وحدات أو أكثر واضغط «صفوف» أو «رتل طريق» — بعدها تتحرك محافظة على التشكيل بسرعة أبطأ وحدة'],['🚛 نقل القوات','من خريطة الحملة: اختر المحافظة والوحدات والعدد، والرتل يصل بعد دقائق حقيقية حسب المسافة — وقد يتعرض لكمين إن مر بمحافظة غير محررة'],['🛢 السيطرة على الآبار','ابنِ برج نفط على أي بئر، ثم تستطيع بناء الأبراج الدفاعية والمباني والأسوار ضمن 12 خانة حوله (وحول نقاط الإمداد والحصون)'],['🏆 التحرير','حين تحرر المحافظة بالكامل تتوقف هجمات العصابة فيها'],['🕊 الهدوء','في بداية كل محافظة لا تهاجمك العصابة لمدة 30 دقيقة لتبني قاعدتك — إلا إذا خرجت قواتك من الحدود أو هاجمتهم أولاً'],['🚁 Mi-17','مروحية نقل وإمداد: تحمل 8 جنود (انقر عليها بالزر الأيمن وجنودك محددون)، وD لإنزالهم بالحبال في أي مكان فوق اليابسة، وتزوّد الوحدات بالوقود والذخيرة'],['⛺ نقطة إمداد متقدمة','تبنيها الجرافة في أي مكان مكشوف قرب الجبهة، تزوّد ما حولها وتملأ شاحنات الإمداد'],['🔧 إصلاح ميداني','شاحنة الإمداد تصلح الآليات القريبة ببطء'],['⛽ الإمداد','الآليات تستهلك الوقود والوحدات تستهلك الذخيرة. تتزود قرب المقر والمصنع والثكنة، أو من شاحنة الإمداد التي تذهب وحدها للوحدات المحتاجة'],['🌉 الجسور','العصابة قد تفجّر الجسور غير المحروسة. حدد جرافة وانقر بالزر الأيمن على الجسر المدمر لإعادة بنائه ($1500)'],['🌙 الليل والعواصف','الليل اختياري (زر 🌙 أسفل القائمة) — عند تفعيله تقل الرؤية ليلاً (بحث «رؤية ليلية» يلغي ذلك). العاصفة الرملية تقلل الرؤية والسرعة وتوقف الطيران'],['عصابة العقرب','عجلات مفخخة، انتحاريون، مسيّرات انتحارية، فرق هاون تقصف وتهرب، عبوات ناسفة على الطرق (يكشفها المهندس ويفككها)، أنفاق تخرج منها الكمائن، وخلايا نائمة في المناطق ضعيفة الحماية'],['الجيش العراقي','همفي، مدرعة MRAP، T-72، أبرامز، BM-21، شيلكا، Mi-28، F-16 — بنماذج ثلاثية الأبعاد'],['👥 المجندون','كل وحدة تحتاج طاقماً من المجندين. يزدادون كل دقيقة ومع كل محافظة محررة، والجرحى يعودون بعد دقيقتين (أكثر إن كان الإسعاف قريباً)'],['💪 المعنويات','ترتفع بالانتصارات وتنخفض بالخسائر وتأخر الرواتب، وتؤثر على قوة النيران'],['⭐ القائد','نقاط من تدمير العدو تُصرف على: استطلاع، قصف مدفعي، ضربة جوية، إنزال مظلي'],['🚢 الأسطول','اشترِ ناقلات من بطاقة الميناء ووسّع حمولتها — الناقلة المستأجرة تأخذ 15% أجرة'],['التحصين','حدد جنوداً وانقر بالزر الأيمن على بيت مهدّم أو حصن حدودي ليتحصنوا ويطلقوا النار منه، أو على ناقلة جنود ليصعدوا. الحرف D لإخراجهم'],['المهندس','يستولي على مباني العدو وأبراج نفطه بالزر الأيمن'],['المقاتلة','تنطلق من المطار، تنفذ غارات ثم تعود للتزوّد بالذخيرة'],['الوضعيات','هجومي يلاحق العدو، دفاعي يلاحق قليلاً ثم يعود، ثابت لا يتحرك'],['مركز الأبحاث','تطويرات للدروع والذخيرة والإنتاج والحفر'],['🗣','تشغيل وإيقاف الردود الصوتية'],['الإسعاف','الإسعاف العسكري (من الثكنة) يعالج الجنود القريبين ويتجه للجرحى تلقائياً'],['الصيانة','الآليات قرب المصنع الحربي، والمروحيات قرب المهبط، والزوارق قرب الحوض البحري تُصلح تلقائياً'],['الحدود','الخط الأزرق حول قاعدتك. وسّعها وحصّنها من مركز القيادة، أو ابنِ «حصن حدودي» على الحافة ليمدها. الأسوار والبوابات تُرسم داخلها، والبوابة تفتح لقواتك وتغلق أمام العدو'],['💾','حفظ القاعدة يدوياً (وتُحفظ تلقائياً كل دقيقة وعند الإغلاق)'],['Shift + نقرة','بناء عدة مبانٍ، أو إنتاج 5 وحدات دفعة واحدة']];
 const kh=KEYS.map(k=>`<b>${k[0]}</b><span>${k[1]}</span>`).join('')+`<b>نصائح</b><span>الدبابات قوية ضد المركبات، وجنود الصواريخ ضد الدروع والطيران، والمشاة ضد المشاة. الراجمة تقصف الأبراج من بعيد. اقتل محطات كهرباء العدو لتضعف أبراجه. الوحدات تترقى بالقتل.</span>`;
@@ -2410,7 +2559,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(100,now-lastT);
   if(++uiT%6===0){updUI();drawMini()}}
  render()}
 resize();requestAnimationFrame(loop);
-window.__game={formUp,convDispatch,convTick,convOpen,get CAMP(){return CAMP},get FORMS(){return FORMS},paintTile,setToolX(t){tool=t},get terrA(){return terr},get origWA(){return origW},get bridges(){return bridges},blowBridge,get storm(){return storm},dayLight,logiTick,get ieds(){return ieds},tunnelAmbush,sleeperCell,plantIED,get gang(){return gang},detonate,showStory,canPlaceP,get oilStore(){return oilStore},set oilStore(v){oilStore=v},get money(){return money},get terrC(){return terrC},usePower,get cmdPts(){return cmdPts},set cmdPts(v){cmdPts=v},get manpower(){return manpower},set manpower(v){manpower=v},get morale(){return morale},get fleet(){return fleet},get wounded(){return wounded},get corpses(){return corpses},sprOK,queueUnit,kill,get PROV(){return PROV},get CAMP(){return CAMP},openCamp,evac,startRes,get RES(){return RES},get contract(){return contract},aiExpand,captureBld,get expLvl(){return expLvl},set expLvl(v){expLvl=v;terrDirty=true},get fortLvl(){return fortLvl},set fortLvl(v){fortLvl=v;applyWallHp();for(const k in BSP)if(k.startsWith('wall')||k.startsWith('gate'))delete BSP[k]},inTerr,get oils(){return oils},get ai(){return ai},coastDock,mkPipe,get MODE(){return MODE},get oilStore(){return oilStore},set oilStore(v){oilStore=v},saveGame,readSave,serialize,setTool(t){tool=t},paintTo,get tool(){return tool},portrait,centerOn,reveal(){fogVis.fill(1);fogExp.fill(1);fogX.clearRect(0,0,MW,MH)},setZoom(z){zoom=z},mkUnit,startGame,update,render,updUI,drawMini,buildUI,get ents(){return ents},get money(){return money},get posts(){return posts},get frame(){return frame},set frame(v){frame=v},issueMove,queueUnit,mkBld,canPlaceP,get sel(){return sel},set sel(v){sel=v},cmdAmove,get stats(){return stats}};
+window.__game={playScene,provLiberationScene,celebrate,castPortrait,onPostLiberated,get MUS(){return MUS},get SCENE(){return SCENE},formUp,convDispatch,convTick,convOpen,get CAMP(){return CAMP},get FORMS(){return FORMS},paintTile,setToolX(t){tool=t},get terrA(){return terr},get origWA(){return origW},get bridges(){return bridges},blowBridge,get storm(){return storm},dayLight,logiTick,get ieds(){return ieds},tunnelAmbush,sleeperCell,plantIED,get gang(){return gang},detonate,showStory,canPlaceP,get oilStore(){return oilStore},set oilStore(v){oilStore=v},get money(){return money},get terrC(){return terrC},usePower,get cmdPts(){return cmdPts},set cmdPts(v){cmdPts=v},get manpower(){return manpower},set manpower(v){manpower=v},get morale(){return morale},get fleet(){return fleet},get wounded(){return wounded},get corpses(){return corpses},sprOK,queueUnit,kill,get PROV(){return PROV},get CAMP(){return CAMP},openCamp,evac,startRes,get RES(){return RES},get contract(){return contract},aiExpand,captureBld,get expLvl(){return expLvl},set expLvl(v){expLvl=v;terrDirty=true},get fortLvl(){return fortLvl},set fortLvl(v){fortLvl=v;applyWallHp();for(const k in BSP)if(k.startsWith('wall')||k.startsWith('gate'))delete BSP[k]},inTerr,get oils(){return oils},get ai(){return ai},coastDock,mkPipe,get MODE(){return MODE},get oilStore(){return oilStore},set oilStore(v){oilStore=v},saveGame,readSave,serialize,setTool(t){tool=t},paintTo,get tool(){return tool},portrait,centerOn,reveal(){fogVis.fill(1);fogExp.fill(1);fogX.clearRect(0,0,MW,MH)},setZoom(z){zoom=z},mkUnit,startGame,update,render,updUI,drawMini,buildUI,get ents(){return ents},get money(){return money},get posts(){return posts},get frame(){return frame},set frame(v){frame=v},issueMove,queueUnit,mkBld,canPlaceP,get sel(){return sel},set sel(v){sel=v},cmdAmove,get stats(){return stats}};
 })();
 </script>
 </body>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta name="khat-version" content="1.1.6">
+<meta name="khat-version" content="1.1.8">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>خط النار</title>
@@ -254,8 +254,8 @@ MAPS.basra_real={roadScale:.5,mw:240,mh:180,pb:[147,145],coast:()=>1e9,lakes:0,r
   {name:'موقع الرميلة',c:[40,92],oil:[32,76],lay:['factory','barracks','power','refinery'],tur:['turret','ctower','aaturret','turret'],units:['tank','tank','rpg','rifle','rifle']},
   {name:'موقع الفاو',c:[189,148],oil:[196,140],lay:['barracks','power','refinery'],tur:['turret','turret','ctower'],units:['rifle','rpg','rpg','rifle'],pirate:1}],
  noil:BASRA_D.noil,roads:[],
- roadPolys:BASRA_D.roads.concat([[[138,139],[138.5,145],[139.5,151],[140,156]],[[40,92],[68,88],[100,88]],[[68,84],[68,104],[68,126]],[[145,93],[160,112],[176,130],[189,148]],[[189,148],[200,158]]]),
- bridgePolys:[[[98,42],[106,38],[114,32],[120,28]],[[147,145],[138,139],[128,134]]].concat(BASRA_D.bridges),
+ roadPolys:[],
+ bridgePolys:[[[95.65, 43.18], [101.29, 40.35]], [[138.0, 139.0], [134.82, 137.41]]].concat(BASRA_D.bridges),
  renderPre(c,r){const D_=this.data,at=(s,x,y)=>s.charCodeAt(y*MW+x);
   if(BASRA_OV.complete&&BASRA_OV.naturalWidth)c.drawImage(BASRA_OV,0,0,WW,WH);
   const inTown=(x,y)=>D_.u&&D_.u.charCodeAt(y*MW+x)===49;
@@ -783,7 +783,7 @@ function wallHp(b){return WALL_HP[fortLvl]*(b.type==='gate'?1.5:1)}
 function applyWallHp(){for(const b of ents)if(b.kind==='bld'&&b.team===0&&!b.dead&&b.def.wallish){const r=b.hp/b.maxHp;b.maxHp=wallHp(b);b.hp=Math.max(1,r*b.maxHp)}}
 function borderTiles(){if(terrDirty||!terrM)recomputeTerr();const L=[];
  for(let y=1;y<MH-1;y++)for(let x=1;x<MW-1;x++){const k=y*MW+x;if(!terrM[k])continue;if(terrM[k-1]&&terrM[k+1]&&terrM[k-MW]&&terrM[k+MW]&&terrM[k-MW-1]&&terrM[k-MW+1]&&terrM[k+MW-1]&&terrM[k+MW+1])continue;
-  if(terr[k]!==0||occ[k]||pipeAt[k]||gateAt[k]||oilT[k])continue;L.push([x,y,roadM[k]?'gate':'wall'])}return L}
+  if(terr[k]!==0||occ[k]||pipeAt[k]||gateAt[k]||oilT[k])continue;L.push([x,y,(roadM[k]||(MODE==='base'&&PB&&(Math.abs(x-PB[0])<=1||Math.abs(y-PB[1])<=1)))?'gate':'wall'])}return L}
 function buildBorderWall(free){const L=borderTiles();if(!L.length){if(!free)msg('السور مكتمل على كامل الحدود','#7fd35a');return}
  if(!free){const cost=L.reduce((a,t)=>a+BD[t[2]].cost,0);if(money[0]<cost){msg('تحتاج $'+cost+' لإكمال السور','#e0584c');sfx('bad');return}money[0]-=cost}
  let w=0,g=0;for(const [x,y,t] of L){mkBld(t,0,x,y,true);if(t==='gate')g++;else w++}
@@ -976,7 +976,7 @@ function updTruck(u){const s=u.hs||(u.hs={st:'seek'});
  else if(s.st==='unload'){if(!s.r||s.r.dead){s.st='return';return}if(--s.t<=0){const room=Math.max(0,storeCap()-oilStore),t=Math.min(room,u.cargo);oilStore+=t;u.cargo-=t;
   if(t>0&&onScreen(u.x,u.y,0))floatT(u.x,u.y-18,'+'+Math.round(t)+' برميل','#6fd0ff');if(u.cargo>0){s.t=120;if(frame-paintWarn>1800){paintWarn=frame;msg('⚠ الخزانات ممتلئة — ابنِ خزاناً أو انتظر الناقلة','#f1c84b')}}else s.st='seek'}}}
 // ---------- أدوات الرسم: شوارع وأنابيب ----------
-function roadPass(c,tx,ty,pass){const x=(tx+.5)*T,y=(ty+.5)*T,k0=ty*MW+tx;const paved=MODE==='base'&&terrM&&terrM[k0];const nb=[];
+function roadPass(c,tx,ty,pass){const x=(tx+.5)*T,y=(ty+.5)*T,k0=ty*MW+tx;const paved=(MODE==='base'&&terrM&&terrM[k0])||(cityPave&&cityPave[k0]);const nb=[];
  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const X=tx+dx,Y=ty+dy;if(X<0||Y<0||X>=MW||Y>=MH)continue;const k=Y*MW+X;if((proad[k]||roadM[k])&&!origW[k]){if(dx&&dy&&(proad[ty*MW+X]||proad[Y*MW+tx]))continue;nb.push([dx,dy])}}
  const st=(w,col,dash)=>{c.strokeStyle=col;c.lineWidth=w;c.lineCap='round';c.setLineDash(dash||[]);c.beginPath();if(!nb.length){c.moveTo(x-.1,y);c.lineTo(x+.1,y)}for(const [dx,dy] of nb){c.moveTo(x,y);c.lineTo(x+dx*T*.5,y+dy*T*.5)}c.stroke();c.setLineDash([])};
  if(paved){if(pass===0)st(T*1.0,'#d9d6cc');else if(pass===1)st(T*.84,'#454644');else st(1.6,'#e9c64a',[6,7])}else{if(pass===0)st(T*.92,'#a68a63');else if(pass===1)st(T*.74,'#b09670')}}
@@ -1526,7 +1526,7 @@ function drawRoom(g,W,H,t){g.fillStyle='#1a1812';g.fillRect(0,0,W,H);const lamp=
 let civs=[],fworks=[];
 function zaghrouta(){if(!AC||!sndOn)return;const t=AC.currentTime;for(let v=0;v<3;v++){const o=AC.createOscillator(),lfo=AC.createOscillator(),lg=AC.createGain(),g=AC.createGain();o.type='sine';o.frequency.value=880+v*70;lfo.frequency.value=13+v*1.5;lg.gain.value=90;lfo.connect(lg);lg.connect(o.frequency);
  const st=t+v*.35;g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(.09,st+.08);g.gain.setValueAtTime(.09,st+1.6);g.gain.linearRampToValueAtTime(0,st+1.9);o.connect(g);g.connect(master);o.start(st);lfo.start(st);o.stop(st+2);lfo.stop(st+2)}}
-function townNear(x,y){if(cities.length){let b0=null,bd0=1e9;for(const c of cities){const d=Math.hypot(c.x-x,c.y-y);if(d<bd0){bd0=d;b0=c}}if(b0&&bd0<45*T)return{n:b0.n,x:b0.x,y:b0.y}}const D_=M.data;let best=null,bd=1e9;if(D_&&D_.towns)for(const [n,tx,ty] of D_.towns){const d=Math.hypot(tx*T-x,ty*T-y);if(d<bd){bd=d;best={n,x:tx*T,y:ty*T}}}
+function townNear(x,y){if(cities.length){let b0=null,bd0=1e9;for(const c of cities){const d=Math.hypot(c.x-x,c.y-y);if(d<bd0){bd0=d;b0=c}}if(b0&&bd0<110*T)return{n:b0.n,x:b0.x,y:b0.y}}const D_=M.data;let best=null,bd=1e9;if(D_&&D_.towns)for(const [n,tx,ty] of D_.towns){const d=Math.hypot(tx*T-x,ty*T-y);if(d<bd){bd=d;best={n,x:tx*T,y:ty*T}}}
  if(!best||bd>40*T){const r=(RUINS||[]).map(([a,b])=>({n:null,x:(a+1)*T,y:(b+.5)*T})).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];if(r&&(!best||Math.hypot(r.x-x,r.y-y)<bd))best=r}return best||{n:null,x,y}}
 function celebrate(x,y,big){const tw=townNear(x,y);const n=big?26:14;for(let i=0;i<n;i++){let px=tw.x+rnd(-4,4)*T,py=tw.y+rnd(-3,3)*T;const tx=Math.floor(px/T),ty=Math.floor(py/T);if(!passT(tx,ty)){const f=nearestFree(tx,ty,tx,ty);if(f){px=(f[0]+.5)*T;py=(f[1]+.5)*T}}civs.push({x:px,y:py,ph:Math.random()*6,k:i%5,flag:i%2===0,until:frame+(big?150:90)*60})}
  for(let i=0;i<(big?10:5);i++)fworks.push({x:tw.x+rnd(-3,3)*T,y:tw.y+rnd(-3,3)*T,t:frame+i*40,c:['#ff5a4a','#fff','#5adf7a','#ffd24a'][i%4]});zaghrouta();setTimeout(zaghrouta,2300);return tw}
@@ -1609,18 +1609,18 @@ function cityInit(S){civDefs();cities=[];if(MODE!=='base')return;const D_=M.data
  if(D_&&D_.towns&&D_.p){for(const [n,x,y,rx] of D_.towns){const k=Math.floor(y)*MW+Math.floor(x);if(D_.p.charCodeAt(k)!==49)continue;cities.push(mkCity(n,x*T,y*T,Math.max(4,Math.min(12,rx||4))))}}
  else{const cl=[];for(const [x,y] of RUINS){let c=cl.find(q=>Math.hypot(q.x-x,q.y-y)<9);if(!c){c={x,y,n:0,sx:0,sy:0};cl.push(c)}c.n++;c.sx+=x;c.sy+=y;c.x=c.sx/c.n;c.y=c.sy/c.n}
   const names=CITYNAMES[PROV]||CITYNAMES.old;cl.filter(c=>c.n>=2).sort((a,b)=>b.n-a.n).slice(0,names.length).forEach((c,i)=>cities.push(mkCity(names[i],(c.x+1)*T,(c.y+.5)*T,Math.max(5,Math.min(9,3+c.n)))))}
- const sv=S&&S.ext&&S.ext.city;if(sv&&sv.length===cities.length)cities.forEach((c,i)=>{const v=sv[i];c.pop=v.p;c.happy=v.h;c.roads=!!v.rd;c.informT=0})}
+ const sv=S&&S.ext&&S.ext.city;if(sv&&sv.length===cities.length)cities.forEach((c,i)=>{const v=sv[i];c.pop=v.p;c.happy=v.h;c.roads=!!v.rd;c.informT=0;if(v.pl){c.plan=v.pl;c.qi=v.qi||0;c.lib=true}})}
 function mkCity(n,x,y,r){return{n,x,y,r,pop:0,happy:30,roads:false,svc:{},houses:0,ruins:0,lib:false,inc:0,informT:0,unrest:0,bigCity:r>=9}}
 function cityLib(c){if(provLib())return true;const k=Math.floor(c.y/T)*MW+Math.floor(c.x/T);if(inTerr(k))return true;let best=null,bd=1e9;for(const p of posts){const d=Math.hypot(p.x-c.x,p.y-c.y);if(d<bd){bd=d;best=p}}return best?best.dead:false}
 function cityTick(){if(MODE!=='base'||!cities.length)return;
  if(frame%30===0){for(const b of ents){if(b.kind!=='bld'||b.dead||!b.def.civil||b.built)continue;b.prog=Math.min(1,(b.prog||0)+30/((CIV[b.type]?CIV[b.type].t:40)*60));b.hp=Math.max(b.hp,b.maxHp*b.prog);if(b.prog>=1){b.built=true;b.hp=b.maxHp;const c=cityOf(b);msg('🏗 اكتمل بناء '+b.def.n+(c?' في '+c.n:''),'#7fd35a');sfx('done')}}}
  if(frame%120!==0)return;cityInc=0;
- for(const c of cities){const wasLib=c.lib;c.lib=cityLib(c);if(c.lib&&!wasLib){c.pop=Math.max(c.pop,80);c.happy=Math.max(c.happy,35)}
+ for(const c of cities){const wasLib=c.lib;c.lib=cityLib(c);if(c.lib&&!wasLib){c.pop=Math.max(c.pop,80);c.happy=Math.max(c.happy,35);planCity(c)}if(c.lib)planTick(c);
   c.svc={};c.houses=0;c.ruins=0;for(const b of ents){if(b.kind!=='bld'||b.dead)continue;if(Math.hypot(b.x-c.x,b.y-c.y)>(c.r+3)*T)continue;if(b.type==='ruin')c.ruins++;if(!b.def.civil||!b.built)continue;if(b.type==='house')c.houses++;else if(CIV[b.type])c.svc[CIV[b.type].svc]=1}if(c.roads)c.svc.roads=1;
-  const cap=(c.bigCity?600:250)+c.houses*160;c.cap=cap;if(!c.lib){c.happy+=(15-c.happy)*.05;continue}
+  const cap=(c.bigCity?600:250)+c.houses*(c.plan?70:160);c.cap=cap;if(!c.lib){c.happy+=(15-c.happy)*.05;continue}
   let tgt=30;for(const k in CIV){const v=CIV[k];if(v.svc&&c.svc[v.svc])tgt+=v.h}tgt+=Math.min(10,c.houses*2);const enemyNear=ents.some(u=>u.team===1&&!u.dead&&u.kind==='unit'&&Math.hypot(u.x-c.x,u.y-c.y)<(c.r+6)*T);if(enemyNear)tgt-=15;c.unrest=Math.max(0,c.unrest-1);tgt-=c.unrest;
   c.happy+=(Math.max(0,Math.min(100,tgt))-c.happy)*.06;const grow=c.happy<20?-.002:.012*(c.happy/100+.3);c.pop=Math.max(0,Math.min(cap,c.pop+cap*grow));
-  c.inc=Math.round(c.pop*.35*(1+.3*(c.svc.water||0)+.3*(c.svc.power||0))*(.3+c.happy/100)*(c.svc.market?1.5:1));cityInc+=c.inc;
+  c.inc=Math.round(c.pop*.2*(1+.3*(c.svc.water||0)+.3*(c.svc.power||0))*(.3+c.happy/100)*(c.svc.market?1.5:1));cityInc+=c.inc;
   if(c.happy>=70&&frame-c.informT>3*3600){c.informT=frame;const ied=ieds.filter(e=>!e.found&&Math.hypot(e.x-c.x,e.y-c.y)<30*T).sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y))[0];const tun=ents.find(b=>b.type==='tunnel'&&!b.dead&&Math.hypot(b.x-c.x,b.y-c.y)<30*T);
    if(ied){ied.found=true;msg('🕵 مخبر من أهالي '+c.n+' أبلغ عن عبوة ناسفة على الطريق','#7fe0ff');lastAlert=frame;alertPos={x:ied.x,y:ied.y}}else if(tun){msg('🕵 مخبر من أهالي '+c.n+' أبلغ عن فتحة نفق','#7fe0ff');lastAlert=frame;alertPos={x:tun.x,y:tun.y}}}
   if(c.happy<28&&c.pop>200&&Math.random()<.02)msg('📢 مظاهرات في '+c.n+' — الأهالي يطالبون بالخدمات','#ffb35b')}
@@ -1635,7 +1635,7 @@ function civBuild(ci,t,auto){const c=cities[ci],v=CIV[t];if(!c||!c.lib){msg('ح�
  if(t==='croads'){if(c.roads)return;money[0]-=v.cost;c.roads=true;paveCity(c);msg('🛣 تم تبليط شوارع '+c.n+' — حركة أسرع وأهالٍ أسعد','#7fd35a');sfx('done');return}
  if(v.svc&&c.svc[v.svc]){msg(c.n+' فيها '+v.n+' مسبقاً','#f1c84b');return}if(v.svc&&ents.some(b=>b.type===t&&!b.dead&&!b.built&&cityOf(b)===c)){msg(v.n+' قيد البناء','#f1c84b');return}
  if(!auto){placing=t;placingCity=ci;amode=false;msg('📍 انقر داخل '+c.n+' لاختيار مكان '+v.n,'#7fe0ff');return}
- let spot=null;if(t==='house'){const r=ents.filter(b=>b.type==='ruin'&&!b.dead&&!(b.gar&&b.gar.length)&&Math.hypot(b.x-c.x,b.y-c.y)<(c.r+3)*T).sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y))[0];if(r){r.dead=true;for(let y=0;y<r.h;y++)for(let x=0;x<r.w;x++)occ[(r.ty+y)*MW+r.tx+x]=null;spot=[r.tx,r.ty]}}
+ let spot=null;if(c.plan&&c.plan.sv[t]&&canPlaceRaw(t,c.plan.sv[t][0],c.plan.sv[t][1]))spot=c.plan.sv[t];if(!spot&&t==='house'){const r=ents.filter(b=>b.type==='ruin'&&!b.dead&&!(b.gar&&b.gar.length)&&Math.hypot(b.x-c.x,b.y-c.y)<(c.r+3)*T).sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y))[0];if(r){r.dead=true;for(let y=0;y<r.h;y++)for(let x=0;x<r.w;x++)occ[(r.ty+y)*MW+r.tx+x]=null;spot=[r.tx,r.ty]}}
  if(!spot){const d=BD[t],cx=Math.floor(c.x/T),cy=Math.floor(c.y/T);for(let rr=0;rr<c.r+3&&!spot;rr++)for(let dy=-rr;dy<=rr&&!spot;dy++)for(let dx=-rr;dx<=rr&&!spot;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==rr)continue;const tx=cx+dx-Math.floor(d.w/2),ty=cy+dy-Math.floor(d.h/2);if(civCan(t,tx,ty,c))spot=[tx,ty]}}
  if(!spot){msg('لا توجد أرض فارغة مناسبة في '+c.n+' — اختر المكان يدوياً 📍','#e0584c');sfx('bad');return}civPlace(t,spot[0],spot[1])}
 function civPlace(t,tx,ty){money[0]-=CIV[t].cost;const b=mkBld(t,0,tx,ty,false);b.prog=0;msg('🏗 بدأ بناء '+CIV[t].n+' — شركات الإعمار المحلية تتولى العمل','#f0c14b');sfx('click');return b}
@@ -1653,6 +1653,26 @@ function cityPanel(){if(curTab!=='r')return;const el=$('rgrid');if(!cities.lengt
   h+='</div></div>'}
  if(el._h!==h){el._h=h;el.innerHTML=h;el.querySelectorAll('[data-cb]').forEach(b=>b.onclick=()=>{const [i,t]=b.dataset.cb.split('|');civBuild(+i,t,true);el._h=null;cityPanel()});el.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{const [i,t]=b.dataset.cp.split('|');civBuild(+i,t,false)});el.querySelectorAll('[data-cg]').forEach(b=>b.onclick=()=>{const c=cities[+b.dataset.cg];centerOn(c.x,c.y)})}}
 const _sgCV=startGame;startGame=function(...a){civDefs();return _sgCV(...a)};
+
+// ================= المدينة النموذجية: مخطط منظم يُبنى تلقائياً بعد التحرير =================
+let cityPave=null;
+function planOK(x,y){if(x<1||y<1||x>=MW-1||y>=MH-1)return false;const k=y*MW+x;if(terr[k]!==0||origW[k]||oilT[k]||pipeAt[k]||gateAt[k])return false;const o=occ[k];if(o&&!(o.type==='ruin'||(o.def&&o.def.civil)))return false;
+ for(const p of posts)if(!p.dead&&Math.hypot((x+.5)*T-p.x,(y+.5)*T-p.y)<12*T)return false;return true}
+function planCity(c){if(c.plan)return;const half=c.bigCity?11:7,cx=Math.round(c.x/T),cy=Math.round(c.y/T),x0=cx-half,y0=cy-half,PX=5,PY=3,plan={hs:[],st:[],sv:{}};
+ const reserved=new Set();const blocks=[];for(let by=y0;by<=cy+half-2;by+=PY)for(let bx=x0;bx<=cx+half-4;bx+=PX)blocks.push([bx,by]);
+ blocks.sort((a,b)=>Math.hypot(a[0]+2-cx,a[1]+1-cy)-Math.hypot(b[0]+2-cx,b[1]+1-cy));
+ const blockOK=(bx,by)=>{for(let y=by;y<by+2;y++)for(let x=bx;x<bx+4;x++)if(!planOK(x,y))return false;return true};
+ const want=[['cschool',0,0],['cmarket',0,0],['cclinic',0,0,'cpolice',2,0],['cwater',0,0,'cpower',2,0]];let wi=0;
+ for(const [bx,by] of blocks){if(wi>=want.length)break;if(!blockOK(bx,by))continue;const w=want[wi++];reserved.add(bx+','+by);plan.sv[w[0]]=[bx+w[1],by+w[2]];if(w[3])plan.sv[w[3]]=[bx+w[4],by+w[5]]}
+ for(const [bx,by] of blocks){if(reserved.has(bx+','+by))continue;for(const [dx,dy] of [[0,0],[2,0],[0,1],[2,1]]){const x=bx+dx,y=by+dy;if(planOK(x,y)&&planOK(x+1,y))plan.hs.push([x,y])}}
+ for(let y=y0-1;y<=cy+half+1;y++)for(let x=x0-1;x<=cx+half+1;x++){const lx=x-x0,ly=y-y0;const onSt=((lx%PX+PX)%PX===4)||((ly%PY+PY)%PY===2)||x===x0-1||y===y0-1;if(!onSt)continue;const k=y*MW+x;if(x<0||y<0||x>=MW||y>=MH)continue;if(terr[k]!==0||origW[k]||occ[k]||oilT[k]||gateAt[k])continue;if(!planOK(x,y))continue;plan.st.push(k)}
+ plan.hs.sort((a,b)=>Math.hypot(a[0]-cx,a[1]-cy)-Math.hypot(b[0]-cx,b[1]-cy));c.plan=plan;c.qi=0;
+ for(const b of ents)if(b.type==='ruin'&&!b.dead&&b.tx>=x0-1&&b.tx<=cx+half+1&&b.ty>=y0-1&&b.ty<=cy+half+1&&!(b.gar&&b.gar.length)){b.dead=true;for(let y=0;y<b.h;y++)for(let x=0;x<b.w;x++)occ[(b.ty+y)*MW+b.tx+x]=null}
+ paveStreets(c);if(frame>60)msg('🏗 بدأ إعمار '+c.n+' وفق مخطط المدينة النموذجية — '+plan.hs.length+' منزلاً بتمويل الحكومة','#f0c14b')}
+function paveStreets(c){if(!c.plan)return;if(!cityPave||cityPave.length!==NN)cityPave=new Uint8Array(NN);for(const k of c.plan.st){if(terr[k]!==0||occ[k])continue;proad[k]=1;roadM[k]=1;cityPave[k]=1}
+ if(terrC)for(const k of c.plan.st)if(proad[k])drawRoadTile(k%MW,(k/MW)|0)}
+function planTick(c){if(!c.plan||!c.lib)return;const building=ents.filter(b=>b.type==='house'&&!b.dead&&!b.built&&cityOf(b)===c).length;let n=3-building;
+ while(n>0&&c.qi<c.plan.hs.length){const [x,y]=c.plan.hs[c.qi++];if(!canPlaceRaw('house',x,y))continue;const b=mkBld('house',0,x,y,false);b.prog=0;n--}}
 
 // ================= الحلقة الرئيسية =================
 function update(){
@@ -2604,11 +2624,11 @@ const _sgA=startGame;startGame=function(mode,dk,S,prov){
  _sgA(mode,dk,S,prov);
  if(S&&S.ext&&S.fog&&S.fog.length===Math.ceil(NN/6)){const e=S.ext;wounded=(e.wnd||[]).map(t=>t+frame);if(e.fleet)fleet={n:e.fleet.n||0,lvl:e.fleet.lvl||0,away:(e.fleet.away||[]).map(t=>t+frame)};
   if(e.pcd)for(const k in pwrCd)pwrCd[k]=frame+(e.pcd[k]||0)}
- lastAlert=-9999;alertPos=null; findBridges();storm={on:false,next:0,t0:0,t1:0,warn:false};try{cityInit(S);setTimeout(()=>cities.forEach(c=>c.roads&&paveCity(c)),800)}catch(e){console.warn(e)}gangInit();if(MODE==='base'){if(S&&S.ext){ai.peaceUntil=S.ext.peace!=null?frame+S.ext.peace:null;ai.provoked=!!S.ext.prov}else{ai.peaceUntil=frame+PEACE_MIN*3600;ai.provoked=false}}
+ lastAlert=-9999;alertPos=null; findBridges();storm={on:false,next:0,t0:0,t1:0,warn:false};try{cityPave=new Uint8Array(NN);cityInit(S);for(const c of cities)if(c.plan)paveStreets(c);setTimeout(()=>cities.forEach(c=>c.plan&&paveStreets(c)),800)}catch(e){console.warn(e)}gangInit();if(MODE==='base'){if(S&&S.ext){ai.peaceUntil=S.ext.peace!=null?frame+S.ext.peace:null;ai.provoked=!!S.ext.prov}else{ai.peaceUntil=frame+PEACE_MIN*3600;ai.provoked=false}}
  if(S&&S.ext&&S.ext.brd&&S.ext.brd.length===bridges.length)S.ext.brd.forEach((d,i)=>{if(d){const b=bridges[i];b.down=true;for(const k of b.tiles){terr[k]=1;roadM[k]=0}}});if(S&&S.ext&&S.ext.gang&&S.fog&&S.fog.length===Math.ceil(NN/6)){const g=S.ext.gang;ieds=(g.ieds||[]).map(([tx,ty,f])=>({tx,ty,x:(tx+.5)*T,y:(ty+.5)*T,found:!!f,dt:0}));gang={nextIED:frame+g.ni,nextAmb:frame+g.na,nextCell:frame+g.nc}}
  lastEarned=stats.earned||0;econInfo={others:0,upk:0};if(mode!=='base')manpower=9999;updRes2();buildPwrUI()};
 const _serA=serialize;serialize=function(){const o=_serA();const pc={};for(const k in pwrCd)pc[k]=Math.max(0,pwrCd[k]-frame);
- o.ext={city:cities.map(c=>({p:Math.round(c.pop),h:Math.round(c.happy),rd:c.roads?1:0})),peace:ai&&ai.peaceUntil!=null?ai.peaceUntil-frame:null,prov:ai&&ai.provoked?1:0,brd:bridges.map(b=>b.down?1:0),gang:{ieds:ieds.map(e=>[e.tx,e.ty,e.found?1:0]),ni:gang.nextIED-frame,na:gang.nextAmb-frame,nc:gang.nextCell-frame},mp:manpower,mor:morale,cmd:cmdPts,pinc:provInc,wnd:wounded.map(t=>t-frame),fleet:{n:fleet.n,lvl:fleet.lvl,away:fleet.away.map(t=>t-frame)},pcd:pc};return o};
+ o.ext={city:cities.map(c=>({p:Math.round(c.pop),h:Math.round(c.happy),rd:c.roads?1:0,pl:c.plan||null,qi:c.qi||0})),peace:ai&&ai.peaceUntil!=null?ai.peaceUntil-frame:null,prov:ai&&ai.provoked?1:0,brd:bridges.map(b=>b.down?1:0),gang:{ieds:ieds.map(e=>[e.tx,e.ty,e.found?1:0]),ni:gang.nextIED-frame,na:gang.nextAmb-frame,nc:gang.nextCell-frame},mp:manpower,mor:morale,cmd:cmdPts,pinc:provInc,wnd:wounded.map(t=>t-frame),fleet:{n:fleet.n,lvl:fleet.lvl,away:fleet.away.map(t=>t-frame)},pcd:pc};return o};
 
 // ================= حملة جديدة: مسح التقدم =================
 let _wiped=false;
